@@ -1,172 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_menu_item"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="3dp">
+    android:padding="16dp">
 
+    <!-- 상단: 식사 유형 배지 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
 
-        <!-- 메뉴 헤더 -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/meal_type_color">
 
-            <!-- 식사 아이콘 -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/primary_light">
-
-                <ImageView
-                    android:id="@+id/mealTypeIcon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_restaurant_menu"
-                    app:tint="@color/primary_color" />
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 날짜와 식사 유형 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:orientation="vertical">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/dateTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/black"
-                    tools:text="3월 15일 (금)" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/mealTypeTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="13sp"
-                    android:textColor="@color/gray_dark"
-                    tools:text="점심" />
-
-            </LinearLayout>
-
-            <!-- 상태 배지 -->
-            <com.google.android.material.chip.Chip
-                android:id="@+id/statusChip"
+            <TextView
+                android:id="@+id/mealTypeTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="현재"
-                android:textSize="11sp"
-                android:visibility="gone"
-                style="@style/Widget.Material3.Chip.Assist"
-                tools:visibility="visible" />
-
-        </LinearLayout>
-
-        <!-- 메뉴 내용 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="12dp">
-
-            <!-- 메인 메뉴 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/mainMenuTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:textSize="15sp"
+                android:text="점심"
+                android:textColor="@color/white"
+                android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
-                android:lineHeight="22dp"
-                tools:text="• 김치찌개\n• 제육볶음\n• 된장국" />
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                tools:text="점심" />
 
-            <!-- 사이드 메뉴 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/sideMenuTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="13sp"
-                android:textColor="@color/gray_dark"
-                android:lineHeight="20dp"
-                tools:text="• 밥\n• 김치\n• 단무지\n• 계란찜" />
-
-        </LinearLayout>
-
-        <!-- 하단 정보 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <!-- 게시글 개수 -->
-            <LinearLayout
-                android:id="@+id/postCountLayout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="4dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_article"
-                    app:tint="@color/gray_dark" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/postCountTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray_dark"
-                    tools:text="게시글 3개" />
-
-            </LinearLayout>
-
-            <!-- 공간 채우기 -->
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-
-            <!-- 화살표 아이콘 -->
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="8dp"
-                android:src="@drawable/ic_arrow_forward"
-                app:tint="@color/gray_medium" />
-
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView>
+    <!-- 메뉴 내용 -->
+    <TextView
+        android:id="@+id/mealContentTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textSize="15sp"
+        android:textColor="@color/black"
+        android:lineHeight="21dp"
+        tools:text="• 김치찌개\n• 제육볶음\n• 된장국\n• 밥\n• 김치\n• 단무지" />
+
+    <!-- 하단: 화살표 아이콘 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_arrow_forward_ios"
+            app:tint="@color/gray_light" />
+
+    </LinearLayout>
+
+</LinearLayout>

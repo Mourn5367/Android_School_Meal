@@ -4,82 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="4dp"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?android:attr/selectableItemBackground"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="3dp">
+    android:foreground="?android:attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
-
-        <!-- 게시글 헤더 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
-
-            <!-- 작성자 아바타 -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:src="@drawable/ic_person"
-                    android:scaleType="centerCrop"
-                    android:background="@color/gray_light"
-                    app:tint="@color/gray_dark" />
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 작성자 정보 -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="12dp"
-                android:orientation="vertical">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/authorTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/black"
-                    tools:text="익명의 학생" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/dateTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray_dark"
-                    tools:text="2시간 전" />
-
-            </LinearLayout>
-
-            <!-- 더보기 메뉴 -->
-            <ImageButton
-                android:id="@+id/menuButton"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_more_vert"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="더보기 메뉴"
-                app:tint="@color/gray_dark" />
-
-        </LinearLayout>
 
         <!-- 게시글 제목 -->
         <com.google.android.material.textview.MaterialTextView
@@ -90,7 +25,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/black"
-            android:maxLines="2"
+            android:maxLines="1"
             android:ellipsize="end"
             tools:text="오늘 점심 김치찌개 어땠나요?" />
 
@@ -101,98 +36,43 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:textSize="14sp"
-            android:textColor="@color/black"
-            android:lineHeight="20dp"
-            android:maxLines="3"
+            android:textColor="@color/gray_dark"
+            android:maxLines="2"
             android:ellipsize="end"
             tools:text="김치찌개가 정말 맛있었는데 여러분은 어떠셨나요? 특히 김치가 잘 익어서 깊은 맛이 났던 것 같아요." />
 
-        <!-- 이미지 (있을 경우) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/imageCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:visibility="gone"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="2dp">
-
-            <ImageView
-                android:id="@+id/postImageView"
-                android:layout_width="match_parent"
-                android:layout_height="160dp"
-                android:scaleType="centerCrop"
-                android:contentDescription="게시글 이미지"
-                tools:src="@drawable/ic_image" />
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 하단 액션 버튼들 -->
+        <!-- 하단 정보 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- 좋아요 버튼 -->
-            <LinearLayout
-                android:id="@+id/likeLayout"
+            <!-- 작성자 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/authorTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:clickable="true"
-                android:focusable="true">
+                android:textSize="12sp"
+                android:textColor="@color/gray_medium"
+                tools:text="익명의 학생" />
 
-                <ImageView
-                    android:id="@+id/likeIcon"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_favorite_border"
-                    app:tint="@color/gray_dark" />
+            <!-- 구분점 -->
+            <View
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="@drawable/shape_circle"
+                android:backgroundTint="@color/gray_medium" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/likeCountTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray_dark"
-                    tools:text="5" />
-
-            </LinearLayout>
-
-            <!-- 댓글 버튼 -->
-            <LinearLayout
-                android:id="@+id/commentLayout"
+            <!-- 작성 시간 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/timeTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:layout_marginStart="16dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_comment"
-                    app:tint="@color/gray_dark" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/commentCountTextView"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray_dark"
-                    tools:text="3" />
-
-            </LinearLayout>
+                android:textSize="12sp"
+                android:textColor="@color/gray_medium"
+                tools:text="2시간 전" />
 
             <!-- 공간 채우기 -->
             <View
@@ -200,14 +80,38 @@
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <!-- 시간 표시 -->
+            <!-- 좋아요 개수 -->
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/timeTextView"
+                android:id="@+id/likeCountTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textColor="@color/gray_medium"
-                tools:text="오후 2:30" />
+                android:visibility="gone"
+                tools:text="좋아요 5개"
+                tools:visibility="visible" />
+
+            <!-- 구분점 (좋아요가 있을 때만) -->
+            <View
+                android:id="@+id/separatorDot"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="@drawable/shape_circle"
+                android:backgroundTint="@color/gray_medium"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- 댓글 개수 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/commentCountTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/gray_medium"
+                android:visibility="gone"
+                tools:text="댓글 3개"
+                tools:visibility="visible" />
 
         </LinearLayout>
 
