@@ -171,7 +171,10 @@ public class PostDetailActivity extends AppCompatActivity {
     private void toggleLike() {
         if (networkManager == null) return;
 
-        networkManager.getApiService().togglePostLike(post.getId())
+        // LikeRequest 생성 (사용자 식별자)
+        ApiService.LikeRequest likeRequest = new ApiService.LikeRequest("anonymous");
+
+        networkManager.getApiService().togglePostLike(post.getId(), likeRequest)
                 .enqueue(new Callback<ApiService.LikeResponse>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiService.LikeResponse> call,
@@ -198,13 +201,16 @@ public class PostDetailActivity extends AppCompatActivity {
     private void loadComments() {
         if (networkManager == null) return;
 
-        networkManager.getApiService().getComments(post.getId())
-                .enqueue(new Callback<List<Comment>>() {
+        // getPostDetail을 사용해서 게시글 상세 정보와 댓글을 함께 가져옴
+        networkManager.getApiService().getPostDetail(post.getId())
+                .enqueue(new Callback<ApiService.PostDetailResponse>() {
                     @Override
-                    public void onResponse(@NonNull Call<List<Comment>> call,
-                                           @NonNull Response<List<Comment>> response) {
+                    public void onResponse(@NonNull Call<ApiService.PostDetailResponse> call,
+                                           @NonNull Response<ApiService.PostDetailResponse> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            List<Comment> comments = response.body();
+                            ApiService.PostDetailResponse detailResponse = response.body();
+                            List<Comment> comments = detailResponse.comments != null ?
+                                    detailResponse.comments : new ArrayList<>();
                             Log.d(TAG, "댓글 로드 성공: " + comments.size() + "개");
                             displayComments(comments);
                         } else {
@@ -214,7 +220,7 @@ public class PostDetailActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onFailure(@NonNull Call<List<Comment>> call, @NonNull Throwable t) {
+                    public void onFailure(@NonNull Call<ApiService.PostDetailResponse> call, @NonNull Throwable t) {
                         Log.e(TAG, "댓글 로드 네트워크 오류", t);
                         displayComments(new ArrayList<>());
                     }
@@ -246,11 +252,12 @@ public class PostDetailActivity extends AppCompatActivity {
 
         if (networkManager == null) return;
 
+        // CreateCommentRequest 생성 (content, author 순서)
         ApiService.CreateCommentRequest request = new ApiService.CreateCommentRequest(
-                post.getId(), content, author
+                content, author
         );
 
-        networkManager.getApiService().createComment(request)
+        networkManager.getApiService().createComment(post.getId(), request)
                 .enqueue(new Callback<Comment>() {
                     @Override
                     public void onResponse(@NonNull Call<Comment> call,
