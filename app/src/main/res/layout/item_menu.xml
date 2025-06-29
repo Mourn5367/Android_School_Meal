@@ -28,7 +28,7 @@
             app:cardBackgroundColor="@color/meal_type_color">
 
             <TextView
-                android:id="@+id/mealTypeTextView"
+                android:id="@+id/mealTypeText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="점심"
@@ -45,7 +45,7 @@
 
     <!-- 메뉴 내용 -->
     <TextView
-        android:id="@+id/mealContentTextView"
+        android:id="@+id/contentText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"

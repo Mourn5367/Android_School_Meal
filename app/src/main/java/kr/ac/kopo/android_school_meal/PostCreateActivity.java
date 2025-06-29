@@ -20,7 +20,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
-import gun0912.tedimagepicker.builder.TedImagePicker;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.imageview.ShapeableImageView;
@@ -43,7 +42,8 @@ import retrofit2.Response;
 
 public class PostCreateActivity extends AppCompatActivity {
     private static final String TAG = "PostCreateActivity";
-    private static final int REQUEST_IMAGE_PICKER = 1001;
+    private static final int REQUEST_CAMERA = 1001;
+    private static final int REQUEST_GALLERY = 1002;
 
     private TextInputLayout titleLayout, authorLayout, contentLayout;
     private TextInputEditText titleEdit, authorEdit, contentEdit;
@@ -123,7 +123,7 @@ public class PostCreateActivity extends AppCompatActivity {
     }
 
     private void setupButtons() {
-        selectImageButton.setOnClickListener(v -> showImagePickerOptions());
+        selectImageButton.setOnClickListener(v -> checkPermissionsAndShowImagePicker());
         removeImageButton.setOnClickListener(v -> removeSelectedImage());
     }
 
@@ -140,14 +140,40 @@ public class PostCreateActivity extends AppCompatActivity {
     private int getMealTypeColor(String mealType) {
         switch (mealType) {
             case "아침":
-                return getResources().getColor(R.color.meal_breakfast, null);
+                return getResources().getColor(R.color.breakfast_color, null);
             case "점심":
-                return getResources().getColor(R.color.meal_lunch, null);
+                return getResources().getColor(R.color.lunch_color, null);
             case "저녁":
-                return getResources().getColor(R.color.meal_dinner, null);
+                return getResources().getColor(R.color.dinner_color, null);
             default:
-                return getResources().getColor(R.color.meal_default, null);
+                return getResources().getColor(R.color.meal_type_color, null);
         }
+    }
+
+    private void checkPermissionsAndShowImagePicker() {
+        Dexter.withContext(this)
+                .withPermissions(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+                .withListener(new MultiplePermissionsListener() {
+                    @Override
+                    public void onPermissionsChecked(MultiplePermissionsReport report) {
+                        if (report.areAllPermissionsGranted()) {
+                            showImagePickerOptions();
+                        } else {
+                            Toast.makeText(PostCreateActivity.this,
+                                    "이미지 선택을 위해 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
+                                                                   PermissionToken token) {
+                        token.continuePermissionRequest();
+                    }
+                })
+                .check();
     }
 
     private void showImagePickerOptions() {
@@ -166,28 +192,48 @@ public class PostCreateActivity extends AppCompatActivity {
     }
 
     private void pickImageFromGallery() {
-        TedImagePicker.with(this)
-                .start(uri -> {
-                    selectedImageUri = uri;
-                    displaySelectedImage();
-                });
+        Intent galleryIntent = new Intent(Intent.ACTION_PICK);
+        galleryIntent.setType("image/*");
+        if (galleryIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(galleryIntent, REQUEST_GALLERY);
+        }
     }
 
     private void takePictureFromCamera() {
-        TedImagePicker.with(this)
-                .camera()
-                .start(uri -> {
-                    selectedImageUri = uri;
-                    displaySelectedImage();
-                });
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(cameraIntent, REQUEST_CAMERA);
+        }
     }
 
-    private void checkPermissionsAndPickImage(ImagePicker.Builder builder) {
-        // TedImagePicker는 권한을 자동으로 처리하므로 이 메서드는 더 이상 필요하지 않습니다
-        // 위의 pickImageFromGallery(), takePictureFromCamera() 메서드가 직접 호출됩니다
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == REQUEST_GALLERY && data != null) {
+                selectedImageUri = data.getData();
+                displaySelectedImage();
+            } else if (requestCode == REQUEST_CAMERA && data != null) {
+                Bundle extras = data.getExtras();
+                if (extras != null) {
+                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+                    if (imageBitmap != null) {
+                        // Bitmap을 임시 파일로 저장하고 Uri 생성
+                        selectedImageUri = getImageUriFromBitmap(imageBitmap);
+                        displaySelectedImage();
+                    }
+                }
+            }
+        }
     }
 
-    // onActivityResult 메서드는 TedImagePicker가 콜백으로 처리하므로 제거할 수 있습니다
+    private Uri getImageUriFromBitmap(Bitmap bitmap) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "Camera_Image", null);
+        return Uri.parse(path);
+    }
 
     private void displaySelectedImage() {
         if (selectedImageUri != null) {

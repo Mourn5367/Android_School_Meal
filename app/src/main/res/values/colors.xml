@@ -14,6 +14,10 @@
     <color name="primary_color">#2196F3</color>
     <color name="primary_light">#E3F2FD</color>
 
+    <!-- 기존 색상명 호환성 -->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorAccent">#FF4081</color>
+
     <!-- 식사 타입 색상 -->
     <color name="meal_type_color">#4CAF50</color> <!-- 기본값, 동적으로 변경 -->
     <color name="breakfast_color">#FF9800</color> <!-- 아침 -->
@@ -29,12 +33,16 @@
     <color name="error_color">#F44336</color>
     <color name="like_color">#E91E63</color>
 
+    <!-- 캐시 관련 색상 -->
+    <color name="cache_text_color">#FF9800</color>
+    <color name="cache_valid_background">#E8F5E8</color>      <!-- 연한 초록 - 유효한 캐시 -->
+    <color name="cache_expired_background">#FFF3E0</color>    <!-- 연한 주황 - 만료된 캐시 -->
+
     <!-- 기타 -->
     <color name="divider_color">#E0E0E0</color>
     <color name="empty_icon_color">#BDBDBD</color>
     <color name="empty_text_color">#757575</color>
     <color name="error_icon_color">#F44336</color>
     <color name="error_text_color">#D32F2F</color>
-    <color name="cache_text_color">#FF9800</color>
 
 </resources>

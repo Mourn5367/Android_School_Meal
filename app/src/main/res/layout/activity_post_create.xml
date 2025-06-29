@@ -34,6 +34,7 @@
 
             <!-- 메뉴 정보 헤더 -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mealInfoCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -44,59 +45,29 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <!-- 식사 타입 배지 -->
-                    <com.google.android.material.card.MaterialCardView
+                    <!-- 메뉴 타입 텍스트 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/mealTypeText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@color/meal_type_color">
-
-                        <TextView
-                            android:id="@+id/mealTypeBadge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="점심"
-                            android:textColor="@color/white"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="6dp" />
-
-                    </com.google.android.material.card.MaterialCardView>
+                        android:text="점심 메뉴"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/meal_type_color"
+                        android:layout_marginBottom="8dp" />
 
                     <!-- 메뉴 정보 -->
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/mealInfoText"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="12dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/mealTypeText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="점심 메뉴"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/meal_type_color" />
-
-                        <TextView
-                            android:id="@+id/mealContentText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="• 김치찌개\n• 제육볶음\n• 된장국"
-                            android:textSize="14sp"
-                            android:textColor="@color/black"
-                            android:lineHeight="20dp" />
-
-                    </LinearLayout>
+                        android:text="• 김치찌개\n• 제육볶음\n• 된장국"
+                        android:textSize="14sp"
+                        android:textColor="@color/black"
+                        android:lineHeight="20dp" />
 
                 </LinearLayout>
 
@@ -104,6 +75,7 @@
 
             <!-- 제목 입력 -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/titleLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -112,7 +84,7 @@
                 app:startIconDrawable="@drawable/ic_title">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/titleEditText"
+                    android:id="@+id/titleEdit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
@@ -123,6 +95,7 @@
 
             <!-- 닉네임 입력 -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/authorLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
@@ -131,7 +104,7 @@
                 app:startIconDrawable="@drawable/ic_person">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/authorEditText"
+                    android:id="@+id/authorEdit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
@@ -141,56 +114,38 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- 이미지 미리보기 (선택된 경우만 표시) -->
-            <LinearLayout
-                android:id="@+id/imagePreviewContainer"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/imagePreviewCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp">
 
-                <com.google.android.material.card.MaterialCardView
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    android:layout_height="wrap_content">
 
-                    <ImageView
+                    <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/imagePreview"
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
                         android:scaleType="centerCrop" />
 
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- 이미지 선택 성공 메시지 -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginBottom="16dp"
-                    android:orientation="horizontal"
-                    android:background="@drawable/bg_success_message"
-                    android:padding="6dp">
-
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_check_circle"
-                        app:tint="@color/success_color" />
-
-                    <TextView
+                    <!-- 이미지 삭제 버튼 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/removeImageButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:text="이미지가 선택되었습니다"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/success_color" />
+                        android:layout_gravity="top|end"
+                        android:layout_margin="8dp"
+                        android:text="X"
+                        style="@style/Widget.Material3.Button.TonalButton" />
 
-                </LinearLayout>
+                </FrameLayout>
 
-            </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- 이미지 선택 버튼 -->
             <com.google.android.material.button.MaterialButton
@@ -206,17 +161,17 @@
                 app:strokeColor="@color/primary_color"
                 app:strokeWidth="2dp" />
 
-            <!-- 내용 입력 - 고정 높이 300dp -->
+            <!-- 내용 입력 -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/contentLayout"
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
                 android:layout_marginBottom="100dp"
                 android:hint="내용"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                app:hintTextColor="@color/gray_dark">
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/contentEditText"
+                    android:id="@+id/contentEdit"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:inputType="textMultiLine"
@@ -230,7 +185,36 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 상단 우측 등록 버튼 (AppBar에 포함될 메뉴) -->
-    <!-- 이 부분은 Activity에서 menu를 통해 구현 -->
+    <!-- 로딩 오버레이 -->
+    <FrameLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="@color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="게시글을 작성 중입니다..."
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
