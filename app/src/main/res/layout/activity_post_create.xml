@@ -14,9 +14,53 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:title="게시글 작성"
-            app:titleTextColor="@color/white"
-            app:navigationIcon="@drawable/ic_arrow_back" />
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/white"
+            app:title=""
+            app:titleTextColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- 제목 -->
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="게시글 작성"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <!-- 등록 버튼 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/toolbarSaveButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="50dp"
+                    android:layout_marginEnd="16dp"
+                    android:text="등록"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="18dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    app:backgroundTint="?attr/colorPrimary"
+                    app:strokeColor="@color/white"
+                    app:strokeWidth="1.5dp"
+                    app:cornerRadius="19dp"
+                    app:iconSize="14dp"
+                    app:iconTint="@color/white"
+                    app:iconGravity="start"
+                    app:iconPadding="6dp"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -48,23 +92,34 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <!-- 메뉴 타입 텍스트 -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/mealTypeText"
+                    <!-- 메뉴 타입 배지 -->
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="점심 메뉴"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/meal_type_color"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="8dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/meal_type_color">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/mealTypeText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="점심"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp" />
+
+                    </com.google.android.material.card.MaterialCardView>
 
                     <!-- 메뉴 정보 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/mealInfoText"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="• 김치찌개\n• 제육볶음\n• 된장국"
+                        android:text="3월 15일 (금) 점심\n김치찌개, 밥, 김치, 단무지"
                         android:textSize="14sp"
                         android:textColor="@color/black"
                         android:lineHeight="20dp" />

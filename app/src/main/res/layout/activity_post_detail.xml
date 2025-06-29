@@ -240,11 +240,23 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- 전송 버튼을 아이콘 버튼으로 변경 -->
+                <!-- 아이콘만 있는 전송 버튼 -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sendCommentButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="작성"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_send"
+                    app:iconSize="20dp"
+                    app:iconTint="@color/white"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:backgroundTint="?attr/colorPrimary"
+                    app:cornerRadius="24dp"
+                    android:contentDescription="댓글 전송"
                     style="@style/Widget.Material3.Button" />
 
             </LinearLayout>

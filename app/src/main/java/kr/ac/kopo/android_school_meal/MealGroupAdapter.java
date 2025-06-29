@@ -1,9 +1,11 @@
 package kr.ac.kopo.android_school_meal;
 
+import android.animation.ObjectAnimator;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
@@ -15,15 +17,19 @@ import com.google.android.material.textview.MaterialTextView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.DateGroupViewHolder> {
 
     private List<DateGroup> dateGroups = new ArrayList<>();
     private OnMealClickListener listener;
+    // 펼쳐진 날짜들을 저장하는 Set
+    private Set<String> expandedDates = new HashSet<>();
 
     public interface OnMealClickListener {
         void onMealClick(Meal meal, String date);
@@ -70,6 +76,9 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
         private MaterialTextView mealCountText;
         private LinearLayout mealsContainer;
         private View colorIndicator;
+        private ImageView expandIcon;
+        private View dividerLine;
+        private LinearLayout headerLayout;
 
         public DateGroupViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -77,6 +86,9 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
             mealCountText = itemView.findViewById(R.id.mealCountText);
             mealsContainer = itemView.findViewById(R.id.mealsContainer);
             colorIndicator = itemView.findViewById(R.id.colorIndicator);
+            expandIcon = itemView.findViewById(R.id.expandIcon);
+            dividerLine = itemView.findViewById(R.id.dividerLine);
+            headerLayout = itemView.findViewById(R.id.headerLayout);
         }
 
         public void bind(DateGroup dateGroup) {
@@ -95,15 +107,64 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
             int backgroundColor = getWeekdayBackgroundColor(dateGroup.date);
             mealsContainer.setBackgroundColor(backgroundColor);
 
-            // 메뉴 아이템들 바로 표시 (접힘 없음)
+            // 현재 펼침 상태 확인
+            boolean isExpanded = expandedDates.contains(dateGroup.date);
+
+            // 메뉴 아이템들 추가
             mealsContainer.removeAllViews();
             for (Meal meal : dateGroup.meals) {
                 View mealView = createMealView(meal, dateGroup.date);
                 mealsContainer.addView(mealView);
             }
 
-            // 항상 표시되도록 설정
-            mealsContainer.setVisibility(View.VISIBLE);
+            // 펼침/접힘 상태 설정
+            if (isExpanded) {
+                mealsContainer.setVisibility(View.VISIBLE);
+                dividerLine.setVisibility(View.VISIBLE);
+                expandIcon.setRotation(180f);
+            } else {
+                mealsContainer.setVisibility(View.GONE);
+                dividerLine.setVisibility(View.GONE);
+                expandIcon.setRotation(0f);
+            }
+
+            // 헤더 클릭 이벤트 (펼치기/접기)
+            headerLayout.setOnClickListener(v -> {
+                toggleExpansion(dateGroup.date);
+            });
+        }
+
+        private void toggleExpansion(String date) {
+            boolean isCurrentlyExpanded = expandedDates.contains(date);
+
+            if (isCurrentlyExpanded) {
+                // 접기
+                expandedDates.remove(date);
+
+                // 애니메이션
+                animateArrow(180f, 0f);
+
+                // 메뉴 컨테이너 숨기기
+                mealsContainer.setVisibility(View.GONE);
+                dividerLine.setVisibility(View.GONE);
+
+            } else {
+                // 펼치기
+                expandedDates.add(date);
+
+                // 애니메이션
+                animateArrow(0f, 180f);
+
+                // 메뉴 컨테이너 보이기
+                mealsContainer.setVisibility(View.VISIBLE);
+                dividerLine.setVisibility(View.VISIBLE);
+            }
+        }
+
+        private void animateArrow(float fromRotation, float toRotation) {
+            ObjectAnimator animator = ObjectAnimator.ofFloat(expandIcon, "rotation", fromRotation, toRotation);
+            animator.setDuration(200);
+            animator.start();
         }
 
         private View createMealView(Meal meal, String date) {
@@ -122,9 +183,17 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
             String formattedContent = formatMealContent(meal.getContent());
             contentText.setText(formattedContent);
 
-            // 식사 유형별 색상
-            int mealColor = getMealTypeColor(meal.getMealType());
+            // 식사 유형별 색상 - 리소스에서 가져오기
+            int mealColor = getMealTypeColorFromResource(meal.getMealType());
+
+            // 작은 원형 인디케이터에 색상 적용
             mealTypeIndicator.setBackgroundColor(mealColor);
+
+            // 식사 유형 배지 배경색도 변경
+            MaterialCardView mealTypeBadge = (MaterialCardView) mealTypeText.getParent().getParent();
+            if (mealTypeBadge != null) {
+                mealTypeBadge.setCardBackgroundColor(mealColor);
+            }
 
             // 클릭 이벤트 (상세 페이지로 이동)
             mealCard.setOnClickListener(v -> {
@@ -155,28 +224,28 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
         private int getWeekdayColor(String dateStr) {
             try {
                 Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr);
-                if (date == null) return Color.GRAY;
+                if (date == null) return itemView.getContext().getColor(R.color.gray_medium);
 
                 int dayOfWeek = Integer.parseInt(new SimpleDateFormat("u", Locale.getDefault()).format(date));
 
                 switch (dayOfWeek) {
-                    case 1: return Color.parseColor("#F44336"); // 월요일 - 빨강
-                    case 2: return Color.parseColor("#FF9800"); // 화요일 - 주황
-                    case 3: return Color.parseColor("#4CAF50"); // 수요일 - 초록
-                    case 4: return Color.parseColor("#2196F3"); // 목요일 - 파랑
-                    case 5: return Color.parseColor("#9C27B0"); // 금요일 - 보라
-                    default: return Color.GRAY;
+                    case 1: return itemView.getContext().getColor(R.color.monday_color);    // 월요일 - 빨강
+                    case 2: return itemView.getContext().getColor(R.color.tuesday_color);   // 화요일 - 주황
+                    case 3: return itemView.getContext().getColor(R.color.wednesday_color); // 수요일 - 초록
+                    case 4: return itemView.getContext().getColor(R.color.thursday_color);  // 목요일 - 파랑
+                    case 5: return itemView.getContext().getColor(R.color.friday_color);    // 금요일 - 보라
+                    default: return itemView.getContext().getColor(R.color.gray_medium);    // 기본 회색
                 }
             } catch (Exception e) {
-                return Color.GRAY;
+                return itemView.getContext().getColor(R.color.gray_medium);
             }
         }
 
-        // 요일별 배경색 (연한 버전) - 리소스에서 가져오기
+        // 요일별 배경색 (연한 버전)
         private int getWeekdayBackgroundColor(String dateStr) {
             try {
                 Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr);
-                if (date == null) return itemView.getContext().getColor(android.R.color.background_light);
+                if (date == null) return itemView.getContext().getColor(R.color.gray_lighter);
 
                 int dayOfWeek = Integer.parseInt(new SimpleDateFormat("u", Locale.getDefault()).format(date));
 
@@ -186,23 +255,25 @@ public class MealGroupAdapter extends RecyclerView.Adapter<MealGroupAdapter.Date
                     case 3: return itemView.getContext().getColor(R.color.wednesday_light); // 수요일 - 연한 초록
                     case 4: return itemView.getContext().getColor(R.color.thursday_light);  // 목요일 - 연한 파랑
                     case 5: return itemView.getContext().getColor(R.color.friday_light);    // 금요일 - 연한 보라
-                    default: return itemView.getContext().getColor(android.R.color.background_light); // 기본 연한 회색
+                    default: return itemView.getContext().getColor(R.color.gray_lighter);   // 기본 연한 회색
                 }
             } catch (Exception e) {
-                return itemView.getContext().getColor(android.R.color.background_light);
+                return itemView.getContext().getColor(R.color.gray_lighter);
             }
         }
 
-        private int getMealTypeColor(String mealType) {
+
+
+        private int getMealTypeColorFromResource(String mealType) {
             switch (mealType) {
                 case "아침":
-                    return Color.parseColor("#FF9800"); // 주황
+                    return itemView.getContext().getColor(R.color.breakfast_color); // 주황
                 case "점심":
-                    return Color.parseColor("#4CAF50"); // 초록
+                    return itemView.getContext().getColor(R.color.lunch_color);     // 초록
                 case "저녁":
-                    return Color.parseColor("#2196F3"); // 파랑
+                    return itemView.getContext().getColor(R.color.dinner_color);   // 파랑
                 default:
-                    return Color.GRAY;
+                    return itemView.getContext().getColor(R.color.gray_medium);
             }
         }
     }

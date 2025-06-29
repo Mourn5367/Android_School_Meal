@@ -49,6 +49,7 @@ public class PostCreateActivity extends AppCompatActivity {
     private MaterialTextView mealInfoText, mealTypeText;
     private ShapeableImageView imagePreview;
     private MaterialButton selectImageButton, removeImageButton;
+    private MaterialButton toolbarSaveButton; // 툴바 저장 버튼 추가
     private View loadingOverlay;
 
     // 데이터
@@ -101,13 +102,16 @@ public class PostCreateActivity extends AppCompatActivity {
         authorEdit = findViewById(R.id.authorEdit);
         contentEdit = findViewById(R.id.contentEdit);
         mealInfoCard = findViewById(R.id.mealInfoCard);
-        imagePreviewCard = findViewById(R.id.imagePreviewCard);
         mealInfoText = findViewById(R.id.mealInfoText);
         mealTypeText = findViewById(R.id.mealTypeText);
+        imagePreviewCard = findViewById(R.id.imagePreviewCard);
         imagePreview = findViewById(R.id.imagePreview);
         selectImageButton = findViewById(R.id.selectImageButton);
         removeImageButton = findViewById(R.id.removeImageButton);
         loadingOverlay = findViewById(R.id.loadingOverlay);
+
+        // 툴바 저장 버튼 추가
+        toolbarSaveButton = findViewById(R.id.toolbarSaveButton);
     }
 
     private void setupToolbar() {
@@ -116,25 +120,62 @@ public class PostCreateActivity extends AppCompatActivity {
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("게시글 작성");
+            getSupportActionBar().setDisplayShowTitleEnabled(false); // 기본 제목 완전히 숨기기
+            getSupportActionBar().setTitle(""); // 제목을 빈 문자열로 설정
         }
     }
 
     private void setupButtons() {
-        selectImageButton.setOnClickListener(v -> checkPermissionsAndPickImage());
-        removeImageButton.setOnClickListener(v -> removeSelectedImage());
+        selectImageButton.setOnClickListener(v -> selectImage());
+        removeImageButton.setOnClickListener(v -> removeImage());
+
+        // 툴바 저장 버튼 클릭 이벤트
+        if (toolbarSaveButton != null) {
+            toolbarSaveButton.setOnClickListener(v -> {
+                if (!isLoading) {
+                    savePost();
+                }
+            });
+        }
     }
 
     private void displayMealInfo() {
-        String displayDate = DateUtils.formatForDisplay(mealDate);
-        mealInfoText.setText(displayDate + " " + mealType);
+        // 메뉴 타입 표시
         mealTypeText.setText(mealType);
 
-        // 메뉴 내용을 리스트 형태로 표시
+        // 메뉴 정보 표시 - 날짜와 식사 유형까지 크게
+        String displayDate = DateUtils.formatForDisplay(mealDate);
         String formattedContent = formatMealContent(mealContent);
-        MaterialTextView mealContentText = findViewById(R.id.mealContentText);
-        if (mealContentText != null) {
-            mealContentText.setText(formattedContent);
+
+        // SpannableString을 사용해서 날짜와 식사 유형까지 크게 만들기
+        String fullText = displayDate + " " + mealType + "\n" + formattedContent;
+        android.text.SpannableString spannableString = new android.text.SpannableString(fullText);
+
+        // 날짜 + 식사 유형 부분까지 크게 (첫 번째 줄 전체)
+        int firstLineEndIndex = displayDate.length() + 1 + mealType.length(); // "3월 15일 (금) 아침"
+        spannableString.setSpan(
+                new android.text.style.RelativeSizeSpan(1.3f), // 30% 더 크게
+                0,
+                firstLineEndIndex,
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        );
+
+        // 날짜 + 식사 유형 부분을 볼드로도 만들기
+        spannableString.setSpan(
+                new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                0,
+                firstLineEndIndex,
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        );
+
+        mealInfoText.setText(spannableString);
+
+        // 메뉴 타입별 색상 설정
+        int color = getMealTypeColor(mealType);
+        MaterialCardView typeCard = mealInfoCard.findViewById(R.id.mealTypeText).getParent() instanceof MaterialCardView ?
+                (MaterialCardView) mealInfoCard.findViewById(R.id.mealTypeText).getParent() : null;
+        if (typeCard != null) {
+            typeCard.setCardBackgroundColor(color);
         }
     }
 
@@ -142,125 +183,91 @@ public class PostCreateActivity extends AppCompatActivity {
         if (content == null || content.trim().isEmpty()) {
             return "메뉴 정보가 없습니다.";
         }
-
-        String[] items = content.split(",");
-        StringBuilder formatted = new StringBuilder();
-
-        for (String item : items) {
-            formatted.append("• ").append(item.trim()).append("\n");
-        }
-
-        return formatted.toString().trim();
+        return content.replace(",", ", ");
     }
 
-    private void checkPermissionsAndPickImage() {
-        // Android 버전에 따라 다른 권한 요청
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) { // API 33+
-            // Android 13 이상: 새로운 미디어 권한 사용
-            Dexter.withContext(this)
-                    .withPermissions(
-                            Manifest.permission.CAMERA,
-                            Manifest.permission.READ_MEDIA_IMAGES
-                    )
-                    .withListener(new MultiplePermissionsListener() {
-                        @Override
-                        public void onPermissionsChecked(MultiplePermissionsReport report) {
-                            if (report.areAllPermissionsGranted()) {
-                                showImagePickerOptions();
-                            } else {
-                                handlePermissionDenied(report);
-                            }
-                        }
-
-                        @Override
-                        public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
-                                                                       PermissionToken token) {
-                            showPermissionRationale(token);
-                        }
-                    })
-                    .check();
-        } else {
-            // Android 12 이하: 기존 권한 사용
-            Dexter.withContext(this)
-                    .withPermissions(
-                            Manifest.permission.CAMERA,
-                            Manifest.permission.READ_EXTERNAL_STORAGE
-                    )
-                    .withListener(new MultiplePermissionsListener() {
-                        @Override
-                        public void onPermissionsChecked(MultiplePermissionsReport report) {
-                            if (report.areAllPermissionsGranted()) {
-                                showImagePickerOptions();
-                            } else {
-                                handlePermissionDenied(report);
-                            }
-                        }
-
-                        @Override
-                        public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
-                                                                       PermissionToken token) {
-                            showPermissionRationale(token);
-                        }
-                    })
-                    .check();
+    private int getMealTypeColor(String mealType) {
+        switch (mealType) {
+            case "아침":
+                return getColor(R.color.breakfast_color);
+            case "점심":
+                return getColor(R.color.lunch_color);
+            case "저녁":
+                return getColor(R.color.dinner_color);
+            default:
+                return getColor(R.color.meal_type_color);
         }
     }
-    private void handlePermissionDenied(MultiplePermissionsReport report) {
-        if (report.isAnyPermissionPermanentlyDenied()) {
-            // 권한이 영구적으로 거부된 경우
-            new AlertDialog.Builder(this)
-                    .setTitle("권한 필요")
-                    .setMessage("이미지를 선택하려면 카메라와 저장소 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.")
-                    .setPositiveButton("설정으로 이동", (dialog, which) -> {
-                        // 앱 설정으로 이동
-                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        intent.setData(Uri.parse("package:" + getPackageName()));
-                        startActivity(intent);
-                    })
-                    .setNegativeButton("취소", null)
-                    .show();
-        } else {
-            // 일반적인 권한 거부
-            Toast.makeText(this, "이미지 선택을 위해 권한이 필요합니다", Toast.LENGTH_LONG).show();
-        }
-    }
-    private void showPermissionRationale(PermissionToken token) {
-        new AlertDialog.Builder(this)
-                .setTitle("권한이 필요합니다")
-                .setMessage("사진을 선택하고 촬영하기 위해 다음 권한이 필요합니다:\n\n" +
-                        "• 카메라: 사진 촬영\n" +
-                        "• 저장소: 갤러리에서 사진 선택")
-                .setPositiveButton("허용", (dialog, which) -> token.continuePermissionRequest())
-                .setNegativeButton("거부", (dialog, which) -> token.cancelPermissionRequest())
-                .show();
-    }
-    private void showImagePickerOptions() {
-        String[] options = {"갤러리에서 선택", "카메라로 촬영"};
 
-        new AlertDialog.Builder(this)
-                .setTitle("이미지 선택")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        pickImageFromGallery();
-                    } else {
-                        takePictureFromCamera();
+    // 메뉴를 완전히 비활성화
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // 메뉴를 inflate하지 않음
+        return false;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // 뒤로가기 버튼만 처리
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void selectImage() {
+        Dexter.withContext(this)
+                .withPermissions(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+                .withListener(new MultiplePermissionsListener() {
+                    @Override
+                    public void onPermissionsChecked(MultiplePermissionsReport report) {
+                        if (report.areAllPermissionsGranted()) {
+                            showImageSourceDialog();
+                        } else {
+                            Toast.makeText(PostCreateActivity.this,
+                                    "이미지 선택을 위해 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
+                                                                   PermissionToken token) {
+                        token.continuePermissionRequest();
+                    }
+                }).check();
+    }
+
+    private void showImageSourceDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("이미지 선택")
+                .setItems(new String[]{"갤러리", "카메라"}, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            openGallery();
+                            break;
+                        case 1:
+                            openCamera();
+                            break;
                     }
                 })
                 .show();
     }
 
-    private void pickImageFromGallery() {
-        Intent galleryIntent = new Intent(Intent.ACTION_PICK);
-        galleryIntent.setType("image/*");
-        if (galleryIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(galleryIntent, REQUEST_GALLERY);
-        }
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, REQUEST_GALLERY);
     }
 
-    private void takePictureFromCamera() {
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(cameraIntent, REQUEST_CAMERA);
+    private void openCamera() {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, REQUEST_CAMERA);
+        } else {
+            Toast.makeText(this, "카메라를 사용할 수 없습니다.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -268,81 +275,51 @@ public class PostCreateActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_GALLERY && data != null) {
-                selectedImageUri = data.getData();
-                displaySelectedImage();
-            } else if (requestCode == REQUEST_CAMERA && data != null) {
-                Bundle extras = data.getExtras();
-                if (extras != null) {
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
-                    if (imageBitmap != null) {
-                        // Bitmap을 임시 파일로 저장하고 Uri 생성
-                        selectedImageUri = getImageUriFromBitmap(imageBitmap);
-                        displaySelectedImage();
+        if (resultCode == RESULT_OK && data != null) {
+            switch (requestCode) {
+                case REQUEST_GALLERY:
+                    selectedImageUri = data.getData();
+                    showImagePreview();
+                    break;
+
+                case REQUEST_CAMERA:
+                    Bundle extras = data.getExtras();
+                    if (extras != null) {
+                        Bitmap imageBitmap = (Bitmap) extras.get("data");
+                        if (imageBitmap != null) {
+                            imagePreview.setImageBitmap(imageBitmap);
+                            showImagePreview();
+                        }
                     }
-                }
+                    break;
             }
         }
     }
 
-    private Uri getImageUriFromBitmap(Bitmap bitmap) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-        String path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "Camera_Image", null);
-        return Uri.parse(path);
-    }
-
-    private void displaySelectedImage() {
+    private void showImagePreview() {
         if (selectedImageUri != null) {
             Glide.with(this)
                     .load(selectedImageUri)
+                    .centerCrop()
                     .into(imagePreview);
 
             imagePreviewCard.setVisibility(View.VISIBLE);
-            selectImageButton.setText("이미지 변경");
-            removeImageButton.setVisibility(View.VISIBLE);
         }
     }
 
-    private void removeSelectedImage() {
+    private void removeImage() {
         selectedImageUri = null;
-        uploadedImageUrl = null;
         imagePreviewCard.setVisibility(View.GONE);
-        selectImageButton.setText("이미지 추가");
-        removeImageButton.setVisibility(View.GONE);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.post_create_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == android.R.id.home) {
-            finish();
-            return true;
-        } else if (id == R.id.action_save) {
-            savePost();
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
+        imagePreview.setImageDrawable(null);
     }
 
     private void savePost() {
-        if (isLoading) return;
-
-        // 입력 검증
-        if (!validateInput()) return;
+        if (!validateInputs()) {
+            return;
+        }
 
         setLoading(true);
 
-        // 이미지가 있으면 먼저 업로드
         if (selectedImageUri != null) {
             uploadImageAndSavePost();
         } else {
@@ -350,7 +327,7 @@ public class PostCreateActivity extends AppCompatActivity {
         }
     }
 
-    private boolean validateInput() {
+    private boolean validateInputs() {
         boolean isValid = true;
 
         if (TextUtils.isEmpty(titleEdit.getText())) {
@@ -377,7 +354,7 @@ public class PostCreateActivity extends AppCompatActivity {
         return isValid;
     }
 
-    // 개선된 이미지 업로드 (NetworkRequestUtility 사용)
+    // 이미지 업로드
     private void uploadImageAndSavePost() {
         if (selectedImageUri == null) {
             createPost(null);
@@ -433,7 +410,7 @@ public class PostCreateActivity extends AppCompatActivity {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    // 개선된 게시글 작성 (NetworkRequestUtility 사용)
+    // 게시글 작성
     private void createPost(String imageUrl) {
         String title = titleEdit.getText().toString().trim();
         String author = authorEdit.getText().toString().trim();
@@ -483,21 +460,23 @@ public class PostCreateActivity extends AppCompatActivity {
         contentEdit.setEnabled(!loading);
         selectImageButton.setEnabled(!loading);
 
-        // 메뉴 아이템 업데이트
-        invalidateOptionsMenu();
+        // 툴바 저장 버튼 상태 업데이트
+        updateSaveButtonState();
     }
 
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem saveItem = menu.findItem(R.id.action_save);
-        if (saveItem != null) {
-            saveItem.setEnabled(!isLoading);
-            if (isLoading) {
-                saveItem.setTitle("작성 중...");
-            } else {
-                saveItem.setTitle("등록");
-            }
+    // 버튼 상태 업데이트 메서드
+    private void updateSaveButtonState() {
+        if (toolbarSaveButton == null) return;
+
+        if (isLoading) {
+            toolbarSaveButton.setText("작성 중...");
+            toolbarSaveButton.setEnabled(false);
+            toolbarSaveButton.setAlpha(0.6f);
+            toolbarSaveButton.setIcon(null); // 로딩 중에는 아이콘 숨기기
+        } else {
+            toolbarSaveButton.setText("등록");
+            toolbarSaveButton.setEnabled(true);
+            toolbarSaveButton.setAlpha(1.0f);
         }
-        return super.onPrepareOptionsMenu(menu);
     }
 }

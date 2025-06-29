@@ -6,6 +6,7 @@
         android:id="@+id/action_save"
         android:title="등록"
         app:showAsAction="always"
-        />
+        android:iconTint="@color/white"
+        android:titleTextColor="@color/white" />
 
 </menu>
