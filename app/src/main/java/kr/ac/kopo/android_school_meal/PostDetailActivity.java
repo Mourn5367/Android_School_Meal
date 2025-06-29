@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -18,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.textview.MaterialTextView;
@@ -26,18 +26,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
-public class PostDetailActivity extends AppCompatActivity {
+public class PostDetailActivity extends AppCompatActivity implements CommentAdapter.OnCommentClickListener {
     private static final String TAG = "PostDetailActivity";
 
-    // UI 컴포넌트
+    // 뷰 요소들
     private MaterialTextView titleTextView;
     private MaterialTextView authorTextView;
     private MaterialTextView timeTextView;
     private MaterialTextView contentTextView;
-    private ImageView postImageView;
+    private ImageView postImageView;                 // ImageView로 변경
     private LinearLayout likeButton;
     private MaterialTextView likeCountTextView;
     private MaterialTextView commentTitleTextView;
@@ -123,7 +121,7 @@ public class PostDetailActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        commentAdapter = new CommentAdapter();
+        commentAdapter = new CommentAdapter(this); // this를 listener로 전달
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         commentsRecyclerView.setAdapter(commentAdapter);
     }
@@ -149,12 +147,12 @@ public class PostDetailActivity extends AppCompatActivity {
 
         // 이미지
         if (!TextUtils.isEmpty(post.getImageUrl())) {
-            postImageView.setVisibility(View.VISIBLE);
+            postImageView.setVisibility(android.view.View.VISIBLE);
             Glide.with(this)
                     .load(post.getImageUrl())
                     .into(postImageView);
         } else {
-            postImageView.setVisibility(View.GONE);
+            postImageView.setVisibility(android.view.View.GONE);
         }
 
         // 좋아요 수
@@ -168,63 +166,66 @@ public class PostDetailActivity extends AppCompatActivity {
         likeButton.setSelected(isLiked);
     }
 
+    // 개선된 좋아요 토글 (NetworkRequestUtility 사용)
     private void toggleLike() {
         if (networkManager == null) return;
 
-        // LikeRequest 생성 (사용자 식별자)
         ApiService.LikeRequest likeRequest = new ApiService.LikeRequest("anonymous");
+        Call<ApiService.LikeResponse> call = networkManager.getApiService().togglePostLike(post.getId(), likeRequest);
 
-        networkManager.getApiService().togglePostLike(post.getId(), likeRequest)
-                .enqueue(new Callback<ApiService.LikeResponse>() {
-                    @Override
-                    public void onResponse(@NonNull Call<ApiService.LikeResponse> call,
-                                           @NonNull Response<ApiService.LikeResponse> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiService.LikeResponse likeResponse = response.body();
-                            isLiked = likeResponse.liked;
-                            post.setLikes(likeResponse.likes);
-                            updateLikeDisplay();
-                        } else {
-                            Log.e(TAG, "좋아요 처리 실패: " + response.code());
-                            showToast("좋아요 처리에 실패했습니다.");
-                        }
-                    }
+        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<ApiService.LikeResponse>() {
+            @Override
+            public void onSuccess(ApiService.LikeResponse result) {
+                isLiked = result.liked;
+                post.setLikes(result.likes);
+                updateLikeDisplay();
+                Log.d(TAG, "좋아요 처리 성공: " + result.liked + ", 총 " + result.likes + "개");
+            }
 
-                    @Override
-                    public void onFailure(@NonNull Call<ApiService.LikeResponse> call, @NonNull Throwable t) {
-                        Log.e(TAG, "좋아요 처리 네트워크 오류", t);
-                        showToast("인터넷 연결을 확인해주세요.");
-                    }
-                });
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "좋아요 처리 최종 실패: " + errorMessage);
+                // ProtocolException의 경우 사용자에게 에러를 보이지 않고 조용히 실패
+                if (!errorMessage.contains("서버 연결이 불안정")) {
+                    showToast("좋아요 처리에 실패했습니다.");
+                }
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // 좋아요는 빠른 동작이므로 로딩 표시 안 함
+            }
+        }, "좋아요 처리", false); // 로딩 표시 안 함
     }
 
+    // 개선된 댓글 로드 (NetworkRequestUtility 사용)
     private void loadComments() {
         if (networkManager == null) return;
 
-        // getPostDetail을 사용해서 게시글 상세 정보와 댓글을 함께 가져옴
-        networkManager.getApiService().getPostDetail(post.getId())
-                .enqueue(new Callback<ApiService.PostDetailResponse>() {
-                    @Override
-                    public void onResponse(@NonNull Call<ApiService.PostDetailResponse> call,
-                                           @NonNull Response<ApiService.PostDetailResponse> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            ApiService.PostDetailResponse detailResponse = response.body();
-                            List<Comment> comments = detailResponse.comments != null ?
-                                    detailResponse.comments : new ArrayList<>();
-                            Log.d(TAG, "댓글 로드 성공: " + comments.size() + "개");
-                            displayComments(comments);
-                        } else {
-                            Log.e(TAG, "댓글 로드 실패: " + response.code());
-                            displayComments(new ArrayList<>());
-                        }
-                    }
+        Call<ApiService.PostDetailResponse> call = networkManager.getApiService().getPostDetail(post.getId());
 
-                    @Override
-                    public void onFailure(@NonNull Call<ApiService.PostDetailResponse> call, @NonNull Throwable t) {
-                        Log.e(TAG, "댓글 로드 네트워크 오류", t);
-                        displayComments(new ArrayList<>());
-                    }
-                });
+        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<ApiService.PostDetailResponse>() {
+            @Override
+            public void onSuccess(ApiService.PostDetailResponse result) {
+                List<Comment> comments = result.comments != null ? result.comments : new ArrayList<>();
+                Log.d(TAG, "댓글 로드 성공: " + comments.size() + "개");
+                displayComments(comments);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "댓글 로드 최종 실패: " + errorMessage);
+                displayComments(new ArrayList<>()); // 빈 댓글 목록 표시
+                if (!errorMessage.contains("서버 연결이 불안정")) {
+                    showToast("댓글을 불러올 수 없습니다.");
+                }
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // 댓글 로딩은 자동으로 처리되므로 별도 UI 업데이트 불필요
+            }
+        }, "댓글 로드");
     }
 
     private void displayComments(List<Comment> comments) {
@@ -232,10 +233,12 @@ public class PostDetailActivity extends AppCompatActivity {
         commentAdapter.updateData(comments);
     }
 
+    // 개선된 댓글 작성 (NetworkRequestUtility 사용)
     private void addComment() {
         String author = authorEditText.getText().toString().trim();
         String content = commentEditText.getText().toString().trim();
 
+        // 입력 검증
         if (TextUtils.isEmpty(author)) {
             authorEditLayout.setError("닉네임을 입력해주세요");
             return;
@@ -252,38 +255,96 @@ public class PostDetailActivity extends AppCompatActivity {
 
         if (networkManager == null) return;
 
-        // CreateCommentRequest 생성 (content, author 순서)
-        ApiService.CreateCommentRequest request = new ApiService.CreateCommentRequest(
-                content, author
-        );
+        // 버튼 비활성화 (중복 전송 방지)
+        sendCommentButton.setEnabled(false);
 
-        networkManager.getApiService().createComment(post.getId(), request)
-                .enqueue(new Callback<Comment>() {
-                    @Override
-                    public void onResponse(@NonNull Call<Comment> call,
-                                           @NonNull Response<Comment> response) {
-                        if (response.isSuccessful()) {
-                            Log.d(TAG, "댓글 작성 성공");
-                            showToast("댓글이 작성되었습니다.");
+        ApiService.CreateCommentRequest request = new ApiService.CreateCommentRequest(content, author);
+        Call<Comment> call = networkManager.getApiService().createComment(post.getId(), request);
 
-                            // 입력 필드 초기화
-                            authorEditText.setText("");
-                            commentEditText.setText("");
+        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<Comment>() {
+            @Override
+            public void onSuccess(Comment result) {
+                Log.d(TAG, "댓글 작성 성공");
+                showToast("댓글이 작성되었습니다.");
 
-                            // 댓글 목록 새로고침
-                            loadComments();
-                        } else {
-                            Log.e(TAG, "댓글 작성 실패: " + response.code());
-                            showToast("댓글 작성에 실패했습니다.");
-                        }
-                    }
+                // 입력 필드 초기화
+                authorEditText.setText("");
+                commentEditText.setText("");
 
-                    @Override
-                    public void onFailure(@NonNull Call<Comment> call, @NonNull Throwable t) {
-                        Log.e(TAG, "댓글 작성 네트워크 오류", t);
-                        showToast("인터넷 연결을 확인해주세요.");
-                    }
-                });
+                // 댓글 목록 새로고침
+                loadComments();
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "댓글 작성 최종 실패: " + errorMessage);
+                if (!errorMessage.contains("서버 연결이 불안정")) {
+                    showToast("댓글 작성에 실패했습니다.");
+                }
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                sendCommentButton.setEnabled(!isLoading);
+                if (isLoading) {
+                    sendCommentButton.setText("작성 중...");
+                } else {
+                    sendCommentButton.setText("등록");
+                }
+            }
+        }, "댓글 작성");
+    }
+
+    // CommentAdapter.OnCommentClickListener 인터페이스 구현
+    @Override
+    public void onCommentLikeClick(Comment comment) {
+        if (networkManager == null) return;
+
+        ApiService.LikeRequest likeRequest = new ApiService.LikeRequest("anonymous");
+        Call<ApiService.LikeResponse> call = networkManager.getApiService().toggleCommentLike(comment.getId(), likeRequest);
+
+        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<ApiService.LikeResponse>() {
+            @Override
+            public void onSuccess(ApiService.LikeResponse result) {
+                Log.d(TAG, "댓글 좋아요 처리 성공: " + result.liked + ", 총 " + result.likes + "개");
+
+                // 댓글 객체 업데이트
+                comment.setLikes(result.likes);
+
+                // 어댑터 새로고침 (특정 위치만)
+                int position = findCommentPosition(comment.getId());
+                if (position != -1) {
+                    commentAdapter.notifyItemChanged(position);
+                }
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "댓글 좋아요 처리 최종 실패: " + errorMessage);
+                // ProtocolException의 경우 사용자에게 에러를 보이지 않음
+                if (!errorMessage.contains("서버 연결이 불안정")) {
+                    showToast("좋아요 처리에 실패했습니다.");
+                }
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // 댓글 좋아요는 빠른 동작이므로 로딩 표시 안 함
+            }
+        }, "댓글 좋아요 처리", false); // 로딩 표시 안 함
+    }
+
+    // 댓글 위치 찾기 헬퍼 메서드
+    private int findCommentPosition(int commentId) {
+        if (commentAdapter == null) return -1;
+
+        for (int i = 0; i < commentAdapter.getItemCount(); i++) {
+            Comment comment = commentAdapter.getCommentAtPosition(i);
+            if (comment != null && comment.getId() == commentId) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private void showToast(String message) {

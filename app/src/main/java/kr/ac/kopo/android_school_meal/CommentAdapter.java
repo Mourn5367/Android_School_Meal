@@ -35,6 +35,14 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         notifyDataSetChanged();
     }
 
+    // 특정 위치의 댓글 가져오기 (PostDetailActivity에서 사용)
+    public Comment getCommentAtPosition(int position) {
+        if (position >= 0 && position < comments.size()) {
+            return comments.get(position);
+        }
+        return null;
+    }
+
     @NonNull
     @Override
     public CommentViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -83,13 +91,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             String relativeTime = DateUtils.formatRelativeTime(comment.getCreatedAt());
             timeTextView.setText(relativeTime);
 
-            // 좋아요 수
-            if (comment.getLikes() > 0) {
-                likeCountTextView.setVisibility(View.VISIBLE);
-                likeCountTextView.setText(String.valueOf(comment.getLikes()));
-            } else {
-                likeCountTextView.setVisibility(View.GONE);
-            }
+            // 좋아요 수 표시 개선
+            updateLikeDisplay(comment);
 
             // 좋아요 버튼 클릭 이벤트
             likeButton.setOnClickListener(v -> {
@@ -97,6 +100,29 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
                     listener.onCommentLikeClick(comment);
                 }
             });
+        }
+
+        private void updateLikeDisplay(Comment comment) {
+            int likes = comment.getLikes();
+
+            if (likes > 0) {
+                likeCountTextView.setVisibility(View.VISIBLE);
+                likeCountTextView.setText(String.valueOf(likes));
+
+                // 좋아요가 있을 때 아이콘 색상 변경
+                if (likeIcon != null) {
+                    likeIcon.setImageResource(R.drawable.ic_favorite); // 채워진 하트
+                    likeIcon.setColorFilter(itemView.getContext().getColor(R.color.like_color));
+                }
+            } else {
+                likeCountTextView.setVisibility(View.GONE);
+
+                // 좋아요가 없을 때 기본 아이콘
+                if (likeIcon != null) {
+                    likeIcon.setImageResource(R.drawable.ic_favorite_border); // 빈 하트
+                    likeIcon.setColorFilter(itemView.getContext().getColor(R.color.gray_dark));
+                }
+            }
         }
     }
 }

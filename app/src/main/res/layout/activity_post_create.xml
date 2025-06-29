@@ -177,7 +177,7 @@
                     android:inputType="textMultiLine"
                     android:gravity="top"
                     android:background="@color/input_background"
-                    android:hint="메뉴에 대한 후기, 의견 등을 자유롭게 작성해주세요.&#10;&#10;예시:&#10;- 맛은 어땠나요?&#10;- 양은 충분했나요?&#10;- 추천하고 싶나요?" />
+                    android:hint="\n\n메뉴에 대한 후기, 의견 등을 자유롭게 작성해주세요.&#10;&#10;예시:&#10;- 맛은 어땠나요?&#10;- 양은 충분했나요?&#10;- 추천하고 싶나요?" />
 
             </com.google.android.material.textfield.TextInputLayout>
 

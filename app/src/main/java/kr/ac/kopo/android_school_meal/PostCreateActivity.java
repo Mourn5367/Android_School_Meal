@@ -37,8 +37,6 @@ import java.io.IOException;
 import java.util.List;
 
 import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class PostCreateActivity extends AppCompatActivity {
     private static final String TAG = "PostCreateActivity";
@@ -53,19 +51,17 @@ public class PostCreateActivity extends AppCompatActivity {
     private MaterialButton selectImageButton, removeImageButton;
     private View loadingOverlay;
 
+    // 데이터
     private NetworkManager networkManager;
+    private Uri selectedImageUri;
+    private String uploadedImageUrl;
+    private boolean isLoading = false;
 
-    // 메뉴 정보
+    // 인텐트 데이터
     private int mealId;
     private String mealType;
     private String mealContent;
     private String mealDate;
-
-    // 선택된 이미지
-    private Uri selectedImageUri;
-    private String uploadedImageUrl;
-
-    private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +89,8 @@ public class PostCreateActivity extends AppCompatActivity {
         mealType = intent.getStringExtra("meal_type");
         mealContent = intent.getStringExtra("meal_content");
         mealDate = intent.getStringExtra("meal_date");
+
+        Log.d(TAG, "메뉴 정보 - ID: " + mealId + ", 타입: " + mealType + ", 날짜: " + mealDate);
     }
 
     private void initViews() {
@@ -123,59 +121,119 @@ public class PostCreateActivity extends AppCompatActivity {
     }
 
     private void setupButtons() {
-        selectImageButton.setOnClickListener(v -> checkPermissionsAndShowImagePicker());
+        selectImageButton.setOnClickListener(v -> checkPermissionsAndPickImage());
         removeImageButton.setOnClickListener(v -> removeSelectedImage());
     }
 
     private void displayMealInfo() {
         String displayDate = DateUtils.formatForDisplay(mealDate);
-        mealInfoText.setText(displayDate + " 메뉴");
+        mealInfoText.setText(displayDate + " " + mealType);
         mealTypeText.setText(mealType);
 
-        // 식사 유형별 색상 설정
-        int color = getMealTypeColor(mealType);
-        mealTypeText.setBackgroundColor(color);
-    }
-
-    private int getMealTypeColor(String mealType) {
-        switch (mealType) {
-            case "아침":
-                return getResources().getColor(R.color.breakfast_color, null);
-            case "점심":
-                return getResources().getColor(R.color.lunch_color, null);
-            case "저녁":
-                return getResources().getColor(R.color.dinner_color, null);
-            default:
-                return getResources().getColor(R.color.meal_type_color, null);
+        // 메뉴 내용을 리스트 형태로 표시
+        String formattedContent = formatMealContent(mealContent);
+        MaterialTextView mealContentText = findViewById(R.id.mealContentText);
+        if (mealContentText != null) {
+            mealContentText.setText(formattedContent);
         }
     }
 
-    private void checkPermissionsAndShowImagePicker() {
-        Dexter.withContext(this)
-                .withPermissions(
-                        Manifest.permission.CAMERA,
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                )
-                .withListener(new MultiplePermissionsListener() {
-                    @Override
-                    public void onPermissionsChecked(MultiplePermissionsReport report) {
-                        if (report.areAllPermissionsGranted()) {
-                            showImagePickerOptions();
-                        } else {
-                            Toast.makeText(PostCreateActivity.this,
-                                    "이미지 선택을 위해 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+    private String formatMealContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return "메뉴 정보가 없습니다.";
+        }
 
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
-                                                                   PermissionToken token) {
-                        token.continuePermissionRequest();
-                    }
-                })
-                .check();
+        String[] items = content.split(",");
+        StringBuilder formatted = new StringBuilder();
+
+        for (String item : items) {
+            formatted.append("• ").append(item.trim()).append("\n");
+        }
+
+        return formatted.toString().trim();
     }
 
+    private void checkPermissionsAndPickImage() {
+        // Android 버전에 따라 다른 권한 요청
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) { // API 33+
+            // Android 13 이상: 새로운 미디어 권한 사용
+            Dexter.withContext(this)
+                    .withPermissions(
+                            Manifest.permission.CAMERA,
+                            Manifest.permission.READ_MEDIA_IMAGES
+                    )
+                    .withListener(new MultiplePermissionsListener() {
+                        @Override
+                        public void onPermissionsChecked(MultiplePermissionsReport report) {
+                            if (report.areAllPermissionsGranted()) {
+                                showImagePickerOptions();
+                            } else {
+                                handlePermissionDenied(report);
+                            }
+                        }
+
+                        @Override
+                        public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
+                                                                       PermissionToken token) {
+                            showPermissionRationale(token);
+                        }
+                    })
+                    .check();
+        } else {
+            // Android 12 이하: 기존 권한 사용
+            Dexter.withContext(this)
+                    .withPermissions(
+                            Manifest.permission.CAMERA,
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                    )
+                    .withListener(new MultiplePermissionsListener() {
+                        @Override
+                        public void onPermissionsChecked(MultiplePermissionsReport report) {
+                            if (report.areAllPermissionsGranted()) {
+                                showImagePickerOptions();
+                            } else {
+                                handlePermissionDenied(report);
+                            }
+                        }
+
+                        @Override
+                        public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions,
+                                                                       PermissionToken token) {
+                            showPermissionRationale(token);
+                        }
+                    })
+                    .check();
+        }
+    }
+    private void handlePermissionDenied(MultiplePermissionsReport report) {
+        if (report.isAnyPermissionPermanentlyDenied()) {
+            // 권한이 영구적으로 거부된 경우
+            new AlertDialog.Builder(this)
+                    .setTitle("권한 필요")
+                    .setMessage("이미지를 선택하려면 카메라와 저장소 접근 권한이 필요합니다.\n\n설정에서 권한을 허용해주세요.")
+                    .setPositiveButton("설정으로 이동", (dialog, which) -> {
+                        // 앱 설정으로 이동
+                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("취소", null)
+                    .show();
+        } else {
+            // 일반적인 권한 거부
+            Toast.makeText(this, "이미지 선택을 위해 권한이 필요합니다", Toast.LENGTH_LONG).show();
+        }
+    }
+    private void showPermissionRationale(PermissionToken token) {
+        new AlertDialog.Builder(this)
+                .setTitle("권한이 필요합니다")
+                .setMessage("사진을 선택하고 촬영하기 위해 다음 권한이 필요합니다:\n\n" +
+                        "• 카메라: 사진 촬영\n" +
+                        "• 저장소: 갤러리에서 사진 선택")
+                .setPositiveButton("허용", (dialog, which) -> token.continuePermissionRequest())
+                .setNegativeButton("거부", (dialog, which) -> token.cancelPermissionRequest())
+                .show();
+    }
     private void showImagePickerOptions() {
         String[] options = {"갤러리에서 선택", "카메라로 촬영"};
 
@@ -319,45 +377,52 @@ public class PostCreateActivity extends AppCompatActivity {
         return isValid;
     }
 
+    // 개선된 이미지 업로드 (NetworkRequestUtility 사용)
     private void uploadImageAndSavePost() {
+        if (selectedImageUri == null) {
+            createPost(null);
+            return;
+        }
+
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
             String base64Image = bitmapToBase64(bitmap);
-            String filename = "image_" + System.currentTimeMillis() + ".jpg";
+            String filename = "post_image_" + System.currentTimeMillis() + ".jpg";
 
             ApiService.ImageUploadRequest request = new ApiService.ImageUploadRequest(
                     "data:image/jpeg;base64," + base64Image, filename
             );
 
-            networkManager.getApiService().uploadImage(request)
-                    .enqueue(new Callback<ApiService.ImageUploadResponse>() {
-                        @Override
-                        public void onResponse(@NonNull Call<ApiService.ImageUploadResponse> call,
-                                               @NonNull Response<ApiService.ImageUploadResponse> response) {
-                            if (response.isSuccessful() && response.body() != null) {
-                                uploadedImageUrl = response.body().image_url;
-                                Log.d(TAG, "이미지 업로드 성공: " + uploadedImageUrl);
-                                createPost(uploadedImageUrl);
-                            } else {
-                                setLoading(false);
-                                Log.e(TAG, "이미지 업로드 실패: " + response.code());
-                                Toast.makeText(PostCreateActivity.this,
-                                        "이미지 업로드에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                            }
-                        }
+            Call<ApiService.ImageUploadResponse> call = networkManager.getApiService().uploadImage(request);
 
-                        @Override
-                        public void onFailure(@NonNull Call<ApiService.ImageUploadResponse> call, @NonNull Throwable t) {
-                            setLoading(false);
-                            Log.e(TAG, "이미지 업로드 네트워크 오류", t);
-                            Toast.makeText(PostCreateActivity.this,
-                                    "인터넷 연결을 확인해주세요.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+            NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<ApiService.ImageUploadResponse>() {
+                @Override
+                public void onSuccess(ApiService.ImageUploadResponse result) {
+                    Log.d(TAG, "이미지 업로드 성공: " + result.image_url);
+                    createPost(result.image_url);
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    Log.e(TAG, "이미지 업로드 최종 실패: " + errorMessage);
+                    if (!errorMessage.contains("서버 연결이 불안정")) {
+                        Toast.makeText(PostCreateActivity.this,
+                                "이미지 업로드에 실패했습니다. 이미지 없이 게시글을 작성합니다.", Toast.LENGTH_SHORT).show();
+                    }
+                    // 이미지 없이 게시글 작성 진행
+                    createPost(null);
+                }
+
+                @Override
+                public void onLoading(boolean isLoading) {
+                    // 이미지 업로드는 createPost에서 이미 로딩 중이므로 별도 처리 안 함
+                }
+            }, "이미지 업로드");
+
         } catch (IOException e) {
-            setLoading(false);
             Log.e(TAG, "이미지 처리 오류", e);
             Toast.makeText(this, "이미지 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
+            setLoading(false);
         }
     }
 
@@ -368,6 +433,7 @@ public class PostCreateActivity extends AppCompatActivity {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
+    // 개선된 게시글 작성 (NetworkRequestUtility 사용)
     private void createPost(String imageUrl) {
         String title = titleEdit.getText().toString().trim();
         String author = authorEdit.getText().toString().trim();
@@ -378,38 +444,44 @@ public class PostCreateActivity extends AppCompatActivity {
                 title, content, author, formattedDate, mealType, imageUrl
         );
 
-        networkManager.getApiService().createPost(request)
-                .enqueue(new Callback<Post>() {
-                    @Override
-                    public void onResponse(@NonNull Call<Post> call, @NonNull Response<Post> response) {
-                        setLoading(false);
+        Call<Post> call = networkManager.getApiService().createPost(request);
 
-                        if (response.isSuccessful()) {
-                            Log.d(TAG, "게시글 작성 성공");
-                            Toast.makeText(PostCreateActivity.this,
-                                    "게시글이 작성되었습니다.", Toast.LENGTH_SHORT).show();
-                            setResult(RESULT_OK);
-                            finish();
-                        } else {
-                            Log.e(TAG, "게시글 작성 실패: " + response.code());
-                            Toast.makeText(PostCreateActivity.this,
-                                    "게시글 작성에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<Post>() {
+            @Override
+            public void onSuccess(Post result) {
+                Log.d(TAG, "게시글 작성 성공: " + result.getTitle());
+                Toast.makeText(PostCreateActivity.this,
+                        "게시글이 작성되었습니다.", Toast.LENGTH_SHORT).show();
+                setResult(RESULT_OK);
+                finish();
+            }
 
-                    @Override
-                    public void onFailure(@NonNull Call<Post> call, @NonNull Throwable t) {
-                        setLoading(false);
-                        Log.e(TAG, "게시글 작성 네트워크 오류", t);
-                        Toast.makeText(PostCreateActivity.this,
-                                "인터넷 연결을 확인해주세요.", Toast.LENGTH_SHORT).show();
-                    }
-                });
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e(TAG, "게시글 작성 최종 실패: " + errorMessage);
+                if (!errorMessage.contains("서버 연결이 불안정")) {
+                    Toast.makeText(PostCreateActivity.this,
+                            "게시글 작성에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                setLoading(isLoading);
+            }
+        }, "게시글 작성");
     }
 
+    // 개선된 로딩 상태 관리
     private void setLoading(boolean loading) {
         isLoading = loading;
         loadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+
+        // 입력 필드 비활성화/활성화
+        titleEdit.setEnabled(!loading);
+        authorEdit.setEnabled(!loading);
+        contentEdit.setEnabled(!loading);
+        selectImageButton.setEnabled(!loading);
 
         // 메뉴 아이템 업데이트
         invalidateOptionsMenu();
@@ -420,7 +492,11 @@ public class PostCreateActivity extends AppCompatActivity {
         MenuItem saveItem = menu.findItem(R.id.action_save);
         if (saveItem != null) {
             saveItem.setEnabled(!isLoading);
-            saveItem.setTitle(isLoading ? "작성 중..." : "등록");
+            if (isLoading) {
+                saveItem.setTitle("작성 중...");
+            } else {
+                saveItem.setTitle("등록");
+            }
         }
         return super.onPrepareOptionsMenu(menu);
     }

@@ -44,5 +44,13 @@
     <color name="empty_text_color">#757575</color>
     <color name="error_icon_color">#F44336</color>
     <color name="error_text_color">#D32F2F</color>
+    <color name="gray_lighter">#F5F5F5</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_stroke">#E0E0E0</color>
 
+    <color name="monday_light">#FFEBEE</color>
+    <color name="tuesday_light">#FFF3E0</color>
+    <color name="wednesday_light">#E8F5E8</color>
+    <color name="thursday_light">#E3F2FD</color>
+    <color name="friday_light">#F3E5F5</color>
 </resources>
