@@ -47,6 +47,11 @@ public class MealBoardActivity extends AppCompatActivity implements PostAdapter.
     private String mealContent;
     private String mealDate;
 
+    private static final int MAX_RETRY_COUNT = 3; // 최대 3번 재시도
+    private static final long[] RETRY_DELAYS = {0, 1500, 3000, 5000}; // 재시도 간격 (ms)
+    private int currentRetryCount = 0;
+    private boolean isLoadingPosts = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +74,7 @@ public class MealBoardActivity extends AppCompatActivity implements PostAdapter.
         displayMealInfo();
 
         // 게시글 로드
+        showProgressiveLoading();
         loadPosts();
     }
 
@@ -113,7 +119,13 @@ public class MealBoardActivity extends AppCompatActivity implements PostAdapter.
     }
 
     private void setupSwipeRefresh() {
-        swipeRefreshLayout.setOnRefreshListener(this::loadPosts);
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // 수동 새로고침 시 재시도 카운터 리셋
+            currentRetryCount = 0;
+            isLoadingPosts = false;
+            loadPostsWithRetry();
+        });
+
         swipeRefreshLayout.setColorSchemeResources(
                 R.color.colorPrimary,
                 R.color.colorAccent
@@ -157,35 +169,91 @@ public class MealBoardActivity extends AppCompatActivity implements PostAdapter.
     }
 
     private void loadPosts() {
+        currentRetryCount = 0; // 재시도 카운터 초기화
+        loadPostsWithRetry();
+    }
+    private void loadPostsWithRetry() {
+        if (isLoadingPosts) return;
+
         String formattedDate = DateUtils.formatToApiDate(mealDate);
+        Log.d(TAG, "게시글 조회 시도 " + (currentRetryCount + 1) + "회 - 날짜: " + formattedDate + ", 식사: " + mealType);
 
-        Log.d(TAG, "게시글 조회 - 날짜: " + formattedDate + ", 식사: " + mealType);
+        isLoadingPosts = true;
 
-        swipeRefreshLayout.setRefreshing(true);
+        // 첫 번째 시도가 아니면 지연 후 실행
+        long delay = RETRY_DELAYS[currentRetryCount];
 
-        networkManager.getApiService().getPosts(formattedDate, mealType)
-                .enqueue(new Callback<List<Post>>() {
-                    @Override
-                    public void onResponse(@NonNull Call<List<Post>> call, @NonNull Response<List<Post>> response) {
-                        swipeRefreshLayout.setRefreshing(false);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            // 사용자에게 로딩 표시 (첫 번째 시도이거나 마지막 시도일 때만)
+            if (currentRetryCount == 0 || currentRetryCount >= MAX_RETRY_COUNT) {
+                swipeRefreshLayout.setRefreshing(true);
+            }
 
-                        if (response.isSuccessful() && response.body() != null) {
-                            List<Post> posts = response.body();
-                            Log.d(TAG, "게시글 조회 성공: " + posts.size() + "개");
-                            displayPosts(posts);
-                        } else {
-                            Log.e(TAG, "게시글 조회 실패: " + response.code());
-                            showError("게시글을 불러올 수 없습니다.");
+            networkManager.getApiService().getPosts(formattedDate, mealType)
+                    .enqueue(new Callback<List<Post>>() {
+                        @Override
+                        public void onResponse(@NonNull Call<List<Post>> call, @NonNull Response<List<Post>> response) {
+                            isLoadingPosts = false;
+                            swipeRefreshLayout.setRefreshing(false);
+
+                            if (response.isSuccessful() && response.body() != null) {
+                                List<Post> posts = response.body();
+                                Log.d(TAG, "게시글 조회 성공: " + posts.size() + "개 (시도 " + (currentRetryCount + 1) + "회)");
+                                displayPosts(posts);
+                                currentRetryCount = 0; // 성공 시 카운터 리셋
+                            } else {
+                                Log.e(TAG, "게시글 조회 실패: " + response.code() + " (시도 " + (currentRetryCount + 1) + "회)");
+                                handleLoadError("서버 응답 오류: " + response.code());
+                            }
                         }
-                    }
 
-                    @Override
-                    public void onFailure(@NonNull Call<List<Post>> call, @NonNull Throwable t) {
-                        swipeRefreshLayout.setRefreshing(false);
-                        Log.e(TAG, "게시글 조회 네트워크 오류", t);
-                        showError("인터넷 연결을 확인해주세요.");
-                    }
-                });
+                        @Override
+                        public void onFailure(@NonNull Call<List<Post>> call, @NonNull Throwable t) {
+                            isLoadingPosts = false;
+                            Log.w(TAG, "게시글 조회 네트워크 오류 (시도 " + (currentRetryCount + 1) + "회): " + t.getMessage());
+
+                            // ProtocolException인 경우 특별 처리
+                            if (t instanceof java.net.ProtocolException) {
+                                handleProtocolException();
+                            } else {
+                                handleLoadError("네트워크 오류: " + t.getMessage());
+                            }
+                        }
+                    });
+        }, delay);
+    }
+    private void handleProtocolException() {
+        // ProtocolException은 자동 재시도
+        if (currentRetryCount < MAX_RETRY_COUNT) {
+            currentRetryCount++;
+            Log.d(TAG, "ProtocolException 발생, " + RETRY_DELAYS[currentRetryCount] + "ms 후 자동 재시도 (" + currentRetryCount + "/" + MAX_RETRY_COUNT + ")");
+
+            // 사용자에게는 로딩 중이라고 표시 (에러 메시지 없음)
+            if (currentRetryCount == 1) {
+                // 첫 번째 재시도 시에만 로딩 표시
+                swipeRefreshLayout.setRefreshing(true);
+            }
+
+            loadPostsWithRetry();
+        } else {
+            // 최대 재시도 횟수 초과 시에만 에러 표시
+            swipeRefreshLayout.setRefreshing(false);
+            Log.e(TAG, "ProtocolException 최대 재시도 횟수 초과");
+            showError("연결이 불안정합니다. 새로고침을 시도해주세요.");
+        }
+    }
+    private void handleLoadError(String errorMessage) {
+        // 일반적인 네트워크 오류 처리
+        if (currentRetryCount < MAX_RETRY_COUNT) {
+            currentRetryCount++;
+            Log.d(TAG, "네트워크 오류, " + RETRY_DELAYS[currentRetryCount] + "ms 후 재시도 (" + currentRetryCount + "/" + MAX_RETRY_COUNT + ")");
+            loadPostsWithRetry();
+        } else {
+            // 최대 재시도 횟수 초과 시에만 에러 표시
+            swipeRefreshLayout.setRefreshing(false);
+            Log.e(TAG, "최대 재시도 횟수 초과: " + errorMessage);
+            showError("게시글을 불러올 수 없습니다. 새로고침을 시도해주세요.");
+        }
     }
 
     private void displayPosts(List<Post> posts) {
@@ -216,12 +284,27 @@ public class MealBoardActivity extends AppCompatActivity implements PostAdapter.
     }
 
     private void showError(String message) {
-        recyclerView.setVisibility(View.GONE);
-        emptyView.setVisibility(View.GONE);
-        errorView.setVisibility(View.VISIBLE);
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
+        // 에러 뷰 대신 Toast만 표시하여 덜 침입적으로 만들기
+        if (getCurrentFocus() != null) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
 
+        // 기존 데이터가 있으면 그대로 유지
+        if (adapter.getItemCount() > 0) {
+            showContent();
+        } else {
+            showEmptyView();
+        }
+    }
+    // 더 나은 사용자 경험을 위한 점진적 로딩
+    private void showProgressiveLoading() {
+        // 0.5초 후에 로딩 표시 (즉각적인 응답을 위해)
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (isLoadingPosts && currentRetryCount == 0) {
+                swipeRefreshLayout.setRefreshing(true);
+            }
+        }, 500);
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.board_menu, menu);

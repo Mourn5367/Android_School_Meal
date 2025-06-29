@@ -113,16 +113,17 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
         }
 
         // 2. 캐시가 없으면 네트워크에서 가져오기
+        setLoading(true);
         fetchMealsFromNetwork();
     }
 
     private void fetchMealsFromNetwork() {
-        setLoading(true);
+        // 이미 setLoading(true)가 호출되었다고 가정
 
         networkManager.getApiService().getMeals().enqueue(new Callback<List<Meal>>() {
             @Override
             public void onResponse(@NonNull Call<List<Meal>> call, @NonNull Response<List<Meal>> response) {
-                setLoading(false);
+                setLoading(false); // 반드시 새로고침 중단
 
                 if (response.isSuccessful() && response.body() != null) {
                     List<Meal> meals = response.body();
@@ -141,15 +142,28 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
 
             @Override
             public void onFailure(@NonNull Call<List<Meal>> call, @NonNull Throwable t) {
-                setLoading(false);
+                setLoading(false); // 반드시 새로고침 중단
                 Log.e(TAG, "네트워크 요청 실패", t);
-                handleNetworkError();
+
+                // 구체적인 오류 메시지 제공
+                String errorMessage;
+                if (t instanceof java.net.ProtocolException) {
+                    errorMessage = "서버 연결이 불안정합니다. 잠시 후 다시 시도해주세요.";
+                } else if (t instanceof java.net.SocketTimeoutException) {
+                    errorMessage = "응답 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.";
+                } else if (t instanceof java.net.UnknownHostException) {
+                    errorMessage = "인터넷 연결을 확인해주세요.";
+                } else {
+                    errorMessage = "네트워크 오류가 발생했습니다. 다시 시도해주세요.";
+                }
+
+                handleNetworkError(errorMessage);
             }
         });
     }
 
-    private void handleNetworkError() {
-        // 3. 네트워크 실패 시 만료된 캐시라도 사용
+    private void handleNetworkError(String errorMessage) {
+        // 네트워크 실패 시 만료된 캐시라도 사용
         List<Meal> fallbackMeals = cacheManager.getExpiredCachedMeals();
         if (fallbackMeals != null && !fallbackMeals.isEmpty()) {
             Log.d(TAG, "만료된 캐시 데이터 사용");
@@ -157,9 +171,13 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
             showToast("인터넷 연결을 확인해주세요. 이전 데이터를 표시합니다.");
         } else {
             showErrorView();
-            showToast("인터넷 연결을 확인해주세요.");
+            showToast(errorMessage);
         }
         updateCacheStatus();
+    }
+    // 오류 처리 메서드 개선
+    private void handleNetworkError() {
+        handleNetworkError("인터넷 연결을 확인해주세요.");
     }
 
     private void displayMeals(List<Meal> meals) {
@@ -221,24 +239,46 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
     }
 
     private void updateCacheInBackground() {
-        // 백그라운드에서 캐시 업데이트
-        networkManager.getApiService().getMeals().enqueue(new Callback<List<Meal>>() {
-            @Override
-            public void onResponse(@NonNull Call<List<Meal>> call, @NonNull Response<List<Meal>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    cacheManager.cacheMeals(response.body());
-                    Log.d(TAG, "백그라운드 캐시 업데이트 완료");
-                    updateCacheStatus();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<List<Meal>> call, @NonNull Throwable t) {
-                Log.w(TAG, "백그라운드 캐시 업데이트 실패", t);
-            }
-        });
+        // 백그라운드에서 캐시 업데이트 (재시도 로직 포함)
+        updateCacheWithRetry(0);
     }
+    private void updateCacheWithRetry(int retryCount) {
+        final int maxRetries = 2;
+        final long[] retryDelays = {0, 2000, 5000};
 
+        if (retryCount > maxRetries) {
+            Log.w(TAG, "백그라운드 캐시 업데이트 최대 재시도 횟수 초과");
+            return;
+        }
+
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            networkManager.getApiService().getMeals().enqueue(new Callback<List<Meal>>() {
+                @Override
+                public void onResponse(@NonNull Call<List<Meal>> call, @NonNull Response<List<Meal>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        cacheManager.cacheMeals(response.body());
+                        Log.d(TAG, "백그라운드 캐시 업데이트 완료 (시도 " + (retryCount + 1) + "회)");
+                        updateCacheStatus();
+                    } else {
+                        Log.w(TAG, "백그라운드 캐시 업데이트 응답 오류: " + response.code() + " (시도 " + (retryCount + 1) + "회)");
+                        if (retryCount < maxRetries) {
+                            updateCacheWithRetry(retryCount + 1);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<List<Meal>> call, @NonNull Throwable t) {
+                    Log.w(TAG, "백그라운드 캐시 업데이트 실패 (시도 " + (retryCount + 1) + "회): " + t.getMessage());
+
+                    // 재시도 (ProtocolException은 재시도하지 않음)
+                    if (retryCount < maxRetries && !(t instanceof java.net.ProtocolException)) {
+                        updateCacheWithRetry(retryCount + 1);
+                    }
+                }
+            });
+        }, retryDelays[retryCount]);
+    }
     private void updateCacheStatus() {
         if (getActivity() == null) return;
 
@@ -265,11 +305,30 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
     }
 
     public void refreshData() {
-        loadMeals();
+        if (isRefreshing) return;
+
+        Log.d(TAG, "새로고침 시작");
+        setLoading(true);
+
+        // 캐시 우선 확인 후 네트워크 요청
+        List<Meal> cachedMeals = cacheManager.getCachedMeals();
+        if (cachedMeals != null && !cachedMeals.isEmpty()) {
+            // 캐시가 있으면 먼저 표시하고 백그라운드에서 업데이트
+            displayMeals(cachedMeals);
+            updateCacheInBackground();
+            setLoading(false); // 새로고침 아이콘 제거
+        } else {
+            // 캐시가 없으면 네트워크에서 가져오기
+            fetchMealsFromNetwork();
+        }
     }
 
     public void forceRefresh() {
+        if (isRefreshing) return;
+
+        Log.d(TAG, "강제 새로고침 시작");
         cacheManager.clearCache();
+        setLoading(true);
         fetchMealsFromNetwork();
     }
 
@@ -278,6 +337,8 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
             swipeRefreshLayout.setRefreshing(loading);
         }
         isRefreshing = loading;
+
+        Log.d(TAG, "로딩 상태 변경: " + loading);
     }
 
     private void showContent() {
@@ -299,8 +360,10 @@ public class MenuFragment extends Fragment implements MealGroupAdapter.OnMealCli
     }
 
     private void showToast(String message) {
-        if (getContext() != null) {
-            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        if (getActivity() != null && isAdded()) {
+            getActivity().runOnUiThread(() -> {
+                Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+            });
         }
     }
 

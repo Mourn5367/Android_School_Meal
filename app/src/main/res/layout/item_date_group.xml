@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <!-- 접을 수 있는 헤더 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/headerCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/white">
 
-        <!-- 날짜 헤더 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -20,14 +26,15 @@
             android:padding="16dp"
             android:gravity="center_vertical">
 
-            <!-- 요일 색상 인디케이터 -->
+            <!-- 색상 인디케이터 -->
             <View
                 android:id="@+id/colorIndicator"
                 android:layout_width="4dp"
                 android:layout_height="40dp"
-                android:background="@color/meal_type_color"
-                android:layout_marginEnd="16dp" />
+                android:background="@color/colorPrimary"
+                android:layout_marginEnd="12dp" />
 
+            <!-- 텍스트 정보 -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -54,16 +61,38 @@
 
             </LinearLayout>
 
+            <!-- 확장/축소 아이콘 -->
+            <ImageView
+                android:id="@+id/expandIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_expand_more"
+                android:contentDescription="메뉴 펼치기/접기"
+                app:tint="@color/gray_dark" />
+
         </LinearLayout>
 
-        <!-- 메뉴 아이템들 컨테이너 -->
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 확장 가능한 메뉴 컨테이너 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/mealsContainerCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="@color/white">
+
         <LinearLayout
             android:id="@+id/mealsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="8dp" />
+            android:padding="8dp"
+            android:animateLayoutChanges="true" />
 
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-</com.google.android.material.card.MaterialCardView>
+</LinearLayout>
