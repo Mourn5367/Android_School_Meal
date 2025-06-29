@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -16,16 +22,37 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Android_School_Meal"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <!-- 메인 Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 식사 게시판 Activity -->
+        <activity
+            android:name=".MealBoardActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- 게시글 작성 Activity -->
+        <activity
+            android:name=".PostCreateActivity"
+            android:exported="false"
+            android:parentActivityName=".MealBoardActivity" />
+
+        <!-- 게시글 상세 Activity -->
+        <activity
+            android:name=".PostDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".MealBoardActivity" />
+
     </application>
 
 </manifest>

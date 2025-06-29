@@ -53,7 +53,6 @@ glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", versi
 
 # 유틸리티
 joda-time = { group = "joda-time", name = "joda-time", version.ref = "jodaTime" }
-ted-imagepicker = { group = "io.github.ParkSangGwon", name = "tedimagepicker", version.ref = "tedImagePicker" }
 dexter = { group = "com.karumi", name = "dexter", version.ref = "dexter" }
 
 # 데이터베이스

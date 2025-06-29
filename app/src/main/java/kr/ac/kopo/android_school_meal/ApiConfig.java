@@ -2,7 +2,7 @@ package kr.ac.kopo.android_school_meal;
 
 public class ApiConfig {
     // 서버 IP를 현재 개발 환경에 맞게 변경하세요
-    private static final String SERVER_IP = "192.168.0.2"; // 실제 서버 IP로 변경
+    private static final String SERVER_IP = "192.168.26.165"; // 실제 서버 IP로 변경
 
     public static final String BASE_URL = "http://" + SERVER_IP + ":5000/api/";
     public static final String IMAGE_BASE_URL = "http://" + SERVER_IP + ":5000/api";

@@ -56,8 +56,6 @@ dependencies {
     // 날짜 처리
     implementation(libs.joda.time)
 
-    // 이미지 선택
-    implementation(libs.ted.imagepicker)
 
     // 권한 처리
     implementation(libs.dexter)
