@@ -12,7 +12,7 @@ import retrofit2.Response;
 
 /**
  * 네트워크 요청을 위한 통합 재시도 유틸리티
- * ProtocolException 등의 네트워크 오류에 대해 자동 재시도 기능 제공
+ * 생성/수정 작업에는 재시도를 하지 않고, 읽기 작업에만 재시도 적용
  */
 public class NetworkRequestUtility {
     private static final String TAG = "NetworkRequestUtility";
@@ -26,29 +26,34 @@ public class NetworkRequestUtility {
     }
 
     /**
-     * 자동 재시도가 포함된 네트워크 요청 실행
-     * @param call Retrofit Call 객체
-     * @param callback 결과 콜백
-     * @param operationName 작업 이름 (로깅용)
-     * @param <T> 응답 타입
+     * 읽기 전용 작업에 재시도 적용 (기본)
      */
     public static <T> void executeWithRetry(Call<T> call, NetworkCallback<T> callback, String operationName) {
-        executeWithRetry(call, callback, operationName, 0, true);
+        executeWithRetry(call, callback, operationName, 0, true, true);
     }
 
     /**
-     * 자동 재시도가 포함된 네트워크 요청 실행 (로딩 표시 옵션)
-     * @param call Retrofit Call 객체
-     * @param callback 결과 콜백
-     * @param operationName 작업 이름 (로깅용)
-     * @param showLoading 로딩 표시 여부
-     * @param <T> 응답 타입
+     * 로딩 표시 여부 지정 (재시도 허용)
      */
     public static <T> void executeWithRetry(Call<T> call, NetworkCallback<T> callback, String operationName, boolean showLoading) {
-        executeWithRetry(call, callback, operationName, 0, showLoading);
+        executeWithRetry(call, callback, operationName, 0, showLoading, true);
     }
 
-    private static <T> void executeWithRetry(Call<T> call, NetworkCallback<T> callback, String operationName, int retryCount, boolean showLoading) {
+    /**
+     * 재시도 여부를 명시적으로 지정 (로딩 표시함)
+     */
+    public static <T> void executeWithRetryControl(Call<T> call, NetworkCallback<T> callback, String operationName, boolean allowRetry) {
+        executeWithRetry(call, callback, operationName, 0, true, allowRetry);
+    }
+
+    /**
+     * 완전한 제어를 위한 메서드
+     */
+    public static <T> void executeWithFullControl(Call<T> call, NetworkCallback<T> callback, String operationName, boolean showLoading, boolean allowRetry) {
+        executeWithRetry(call, callback, operationName, 0, showLoading, allowRetry);
+    }
+
+    private static <T> void executeWithRetry(Call<T> call, NetworkCallback<T> callback, String operationName, int retryCount, boolean showLoading, boolean allowRetry) {
         if (retryCount > MAX_RETRY_COUNT) {
             Log.w(TAG, operationName + " 최대 재시도 횟수 초과");
             callback.onLoading(false);
@@ -56,10 +61,10 @@ public class NetworkRequestUtility {
             return;
         }
 
-        Log.d(TAG, operationName + " 시도 " + (retryCount + 1) + "회");
+        Log.d(TAG, operationName + " 시도 " + (retryCount + 1) + "회" + (allowRetry ? " (재시도 허용)" : " (재시도 없음)"));
 
         // 첫 번째 시도가 아니면 지연 후 실행
-        long delay = RETRY_DELAYS[retryCount];
+        long delay = retryCount > 0 ? RETRY_DELAYS[retryCount] : 0;
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             // 로딩 표시 (첫 번째 시도이거나 마지막 시도일 때만)
@@ -80,7 +85,15 @@ public class NetworkRequestUtility {
                         callback.onSuccess(response.body());
                     } else {
                         Log.e(TAG, operationName + " 응답 오류: " + response.code() + " (시도 " + (retryCount + 1) + "회)");
-                        handleRetry(call, callback, operationName, retryCount, showLoading, "서버 응답 오류: " + response.code());
+                        String errorMessage = "서버 응답 오류: " + response.code();
+
+                        // 재시도 허용되고 4xx 클라이언트 오류가 아닌 경우만 재시도
+                        if (allowRetry && response.code() >= 500) {
+                            handleRetry(call, callback, operationName, retryCount, showLoading, allowRetry, errorMessage);
+                        } else {
+                            // 클라이언트 오류(4xx)이거나 재시도 비허용 시 즉시 실패
+                            callback.onFailure(errorMessage);
+                        }
                     }
                 }
 
@@ -90,23 +103,31 @@ public class NetworkRequestUtility {
 
                     String errorMessage = getErrorMessage(t);
 
-                    // ProtocolException은 자동 재시도, 다른 오류도 재시도
-                    if (t instanceof java.net.ProtocolException) {
-                        // ProtocolException은 사용자에게 보이지 않게 재시도
-                        handleRetry(call, callback, operationName, retryCount, false, errorMessage);
+                    // 재시도 허용 여부 확인
+                    if (allowRetry) {
+                        // ProtocolException은 자동 재시도, 다른 오류도 재시도
+                        if (t instanceof java.net.ProtocolException) {
+                            // ProtocolException은 사용자에게 보이지 않게 재시도
+                            handleRetry(call, callback, operationName, retryCount, false, allowRetry, errorMessage);
+                        } else {
+                            // 다른 오류도 재시도하되, 마지막에만 에러 표시
+                            handleRetry(call, callback, operationName, retryCount, showLoading, allowRetry, errorMessage);
+                        }
                     } else {
-                        // 다른 오류도 재시도하되, 마지막에만 에러 표시
-                        handleRetry(call, callback, operationName, retryCount, showLoading, errorMessage);
+                        // 재시도 비허용 시 즉시 실패
+                        Log.d(TAG, operationName + " 재시도 비허용으로 즉시 실패 처리");
+                        callback.onLoading(false);
+                        callback.onFailure(errorMessage);
                     }
                 }
             });
         }, delay);
     }
 
-    private static <T> void handleRetry(Call<T> originalCall, NetworkCallback<T> callback, String operationName, int retryCount, boolean showLoading, String errorMessage) {
+    private static <T> void handleRetry(Call<T> originalCall, NetworkCallback<T> callback, String operationName, int retryCount, boolean showLoading, boolean allowRetry, String errorMessage) {
         if (retryCount < MAX_RETRY_COUNT) {
             Log.d(TAG, operationName + " " + RETRY_DELAYS[retryCount + 1] + "ms 후 재시도 (" + (retryCount + 1) + "/" + MAX_RETRY_COUNT + ")");
-            executeWithRetry(originalCall, callback, operationName, retryCount + 1, showLoading);
+            executeWithRetry(originalCall, callback, operationName, retryCount + 1, showLoading, allowRetry);
         } else {
             Log.e(TAG, operationName + " 최대 재시도 횟수 초과: " + errorMessage);
             callback.onLoading(false);
@@ -124,6 +145,13 @@ public class NetworkRequestUtility {
         } else {
             return "네트워크 오류가 발생했습니다.";
         }
+    }
+
+    /**
+     * 생성/수정 작업용 간편 메서드 (재시도 없음)
+     */
+    public static <T> void executeOnce(Call<T> call, NetworkCallback<T> callback, String operationName) {
+        executeWithRetry(call, callback, operationName, 0, true, false);
     }
 
     /**

@@ -264,7 +264,8 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
         ApiService.CreateCommentRequest request = new ApiService.CreateCommentRequest(content, author);
         Call<Comment> call = networkManager.getApiService().createComment(post.getId(), request);
 
-        NetworkRequestUtility.executeWithRetry(call, new NetworkRequestUtility.NetworkCallback<Comment>() {
+        // 댓글 작성은 재시도하지 않음 (중복 방지)
+        NetworkRequestUtility.executeOnce(call, new NetworkRequestUtility.NetworkCallback<Comment>() {
             @Override
             public void onSuccess(Comment result) {
                 Log.d(TAG, "댓글 작성 성공");
@@ -284,24 +285,21 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
 
             @Override
             public void onFailure(String errorMessage) {
-                Log.e(TAG, "댓글 작성 최종 실패: " + errorMessage);
+                Log.e(TAG, "댓글 작성 실패: " + errorMessage);
 
                 // 버튼 활성화
                 sendCommentButton.setEnabled(true);
                 sendCommentButton.setAlpha(1.0f);
 
-                if (!errorMessage.contains("서버 연결이 불안정")) {
-                    showToast("댓글 작성에 실패했습니다.");
-                }
+                showToast("댓글 작성에 실패했습니다.");
             }
 
             @Override
             public void onLoading(boolean isLoading) {
-                // 로딩 상태는 위에서 처리
+                // 버튼 상태로 이미 관리하므로 여기서는 처리하지 않음
             }
         }, "댓글 작성");
     }
-
     // CommentAdapter.OnCommentClickListener 인터페이스 구현
     @Override
     public void onCommentLikeClick(Comment comment) {
