@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="@color/gray_light">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="top">
+
+        <!-- 작성자 아바타 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="12dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_person"
+                android:scaleType="centerCrop"
+                android:background="@color/gray_medium"
+                app:tint="@color/gray_dark" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 댓글 내용 영역 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- 작성자와 시간 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/authorTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    tools:text="익명의 학생" />
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="4dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:background="@drawable/shape_circle"
+                    android:backgroundTint="@color/gray_medium" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/timeTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/gray_dark"
+                    tools:text="1시간 전" />
+
+            </LinearLayout>
+
+            <!-- 댓글 내용 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/contentTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:lineHeight="20dp"
+                tools:text="저도 김치찌개 정말 맛있었어요! 특히 오늘은 김치가 정말 잘 익어서 깊은 맛이 났네요." />
+
+            <!-- 댓글 액션 버튼들 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- 좋아요 버튼 -->
+                <LinearLayout
+                    android:id="@+id/likeLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/likeIcon"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_favorite_border"
+                        app:tint="@color/gray_dark" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/likeCountTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:textSize="11sp"
+                        android:textColor="@color/gray_dark"
+                        android:visibility="gone"
+                        tools:text="2"
+                        tools:visibility="visible" />
+
+                </LinearLayout>
+
+                <!-- 답글 버튼 -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/replyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="답글"
+                    android:textSize="11sp"
+                    android:textColor="@color/gray_dark"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="4dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- 더보기 메뉴 -->
+        <ImageButton
+            android:id="@+id/menuButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_more_vert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="더보기 메뉴"
+            app:tint="@color/gray_dark" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
