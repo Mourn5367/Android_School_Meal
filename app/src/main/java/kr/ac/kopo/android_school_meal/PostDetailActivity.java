@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -44,7 +45,7 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
     private TextInputEditText authorEditText;
     private TextInputLayout commentEditLayout;
     private TextInputEditText commentEditText;
-    private MaterialButton sendCommentButton;
+    private View sendCommentButton;
 
     // 데이터
     private Post post;
@@ -107,7 +108,8 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
         authorEditText = findViewById(R.id.authorEditText);
         commentEditLayout = findViewById(R.id.commentEditLayout);
         commentEditText = findViewById(R.id.commentEditText);
-        sendCommentButton = findViewById(R.id.sendCommentButton);
+        sendCommentButton = (View) findViewById(R.id.sendCommentButton).getParent();
+
     }
 
     private void setupToolbar() {
@@ -233,7 +235,7 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
         commentAdapter.updateData(comments);
     }
 
-    // 개선된 댓글 작성 (NetworkRequestUtility 사용)
+    // 댓글 작성 (NetworkRequestUtility 사용)
     private void addComment() {
         String author = authorEditText.getText().toString().trim();
         String content = commentEditText.getText().toString().trim();
@@ -257,6 +259,7 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
 
         // 버튼 비활성화 (중복 전송 방지)
         sendCommentButton.setEnabled(false);
+        sendCommentButton.setAlpha(0.5f);
 
         ApiService.CreateCommentRequest request = new ApiService.CreateCommentRequest(content, author);
         Call<Comment> call = networkManager.getApiService().createComment(post.getId(), request);
@@ -271,6 +274,10 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
                 authorEditText.setText("");
                 commentEditText.setText("");
 
+                // 버튼 활성화
+                sendCommentButton.setEnabled(true);
+                sendCommentButton.setAlpha(1.0f);
+
                 // 댓글 목록 새로고침
                 loadComments();
             }
@@ -278,6 +285,11 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
             @Override
             public void onFailure(String errorMessage) {
                 Log.e(TAG, "댓글 작성 최종 실패: " + errorMessage);
+
+                // 버튼 활성화
+                sendCommentButton.setEnabled(true);
+                sendCommentButton.setAlpha(1.0f);
+
                 if (!errorMessage.contains("서버 연결이 불안정")) {
                     showToast("댓글 작성에 실패했습니다.");
                 }
@@ -285,12 +297,7 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
 
             @Override
             public void onLoading(boolean isLoading) {
-                sendCommentButton.setEnabled(!isLoading);
-                if (isLoading) {
-                    sendCommentButton.setText("작성 중...");
-                } else {
-                    sendCommentButton.setText("등록");
-                }
+                // 로딩 상태는 위에서 처리
             }
         }, "댓글 작성");
     }
