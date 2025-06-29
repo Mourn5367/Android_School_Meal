@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorAccent">#FF9800</color>
+
+    <!-- 메뉴 타입 색상 -->
+    <color name="meal_breakfast">#FF9800</color>
+    <color name="meal_lunch">#4CAF50</color>
+    <color name="meal_dinner">#2196F3</color>
+    <color name="meal_default">#9E9E9E</color>
+
+    <!-- 캐시 상태 색상 -->
+    <color name="cache_valid_background">#E8F5E8</color>
+    <color name="cache_expired_background">#FFF3E0</color>
+    <color name="cache_text_color">#616161</color>
+
+    <!-- 빈 화면 색상 -->
+    <color name="empty_icon_color">#BDBDBD</color>
+    <color name="empty_text_color">#757575</color>
+
+    <!-- 오류 화면 색상 -->
+    <color name="error_icon_color">#F44336</color>
+    <color name="error_text_color">#757575</color>
+
+    <!-- 기본 색상 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_medium">#E0E0E0</color>
+    <color name="gray_dark">#424242</color>
+
+    <!-- 좋아요/댓글 색상 -->
+    <color name="like_active">#2196F3</color>
+    <color name="like_inactive">#9E9E9E</color>
+</resources>
