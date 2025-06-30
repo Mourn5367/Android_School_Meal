@@ -149,9 +149,22 @@ public class PostDetailActivity extends AppCompatActivity implements CommentAdap
 
         // 이미지
         if (!TextUtils.isEmpty(post.getImageUrl())) {
+            Log.d(TAG, "원본 이미지 URL: " + post.getImageUrl());
+
+            String fullImageUrl;
+            if (post.getImageUrl().startsWith("http")) {
+                // 이미 완전한 URL인 경우
+                fullImageUrl = post.getImageUrl();
+            } else {
+                // 상대경로인 경우 Base URL 추가
+                fullImageUrl = ApiConfig.BASE_URL + post.getImageUrl();
+            }
+
+            Log.d(TAG, "완성된 이미지 URL: " + fullImageUrl);
+
             postImageView.setVisibility(android.view.View.VISIBLE);
             Glide.with(this)
-                    .load(post.getImageUrl())
+                    .load(fullImageUrl)
                     .into(postImageView);
         } else {
             postImageView.setVisibility(android.view.View.GONE);
